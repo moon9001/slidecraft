@@ -511,7 +511,17 @@ def parse_ppt_pages(content):
     collecting = []
 
     def clean(s):
-        return s.strip().rstrip("】】")
+        """清理文本：去除空白、Markdown格式符号、页码标记等"""
+        s = s.strip().rstrip("】】")
+        # 去除 Markdown 格式符号 ** 和 __
+        import re
+        s = re.sub(r'\*\*(.+?)\*\*', r'\1', s)
+        s = re.sub(r'__(.+?)__', r'\1', s)
+        # 去除行首的 **标题：** 等标记中的 **
+        s = re.sub(r'\*\*?(标题|副标题|要点|摘要|说明)\*\*?：?', r'\1：', s)
+        # 去除行首的星号列表标记
+        s = re.sub(r'^[\*\-•]\s+', '', s)
+        return s
 
     def save_page():
         nonlocal current_page, collecting
@@ -563,10 +573,15 @@ def parse_ppt_pages(content):
             continue
 
         if current_type == "cover":
-            if line.startswith('标题') or line.startswith('标题:'):
-                current_page["title"] = clean(line[3:].lstrip('：:'))
-            elif line.startswith('副标题') or line.startswith('副标题:'):
-                current_page["subtitle"] = clean(line[4:].lstrip('：:'))
+            # 封面页的标题和副标题提取 - 注意顺序，先检查副标题
+            if line.startswith('副标题'):
+                parts = re.split(r'[：:]', line, 1)
+                if len(parts) > 1:
+                    current_page["subtitle"] = clean(parts[1])
+            elif line.startswith('标题'):
+                parts = re.split(r'[：:]', line, 1)
+                if len(parts) > 1:
+                    current_page["title"] = clean(parts[1])
         elif current_type == "toc" and current_page:
             m2 = re.match(r'^\s*[一二三四五六七八九十\d]+[.、：:\s]\s*(.+)', line)
             if m2:
@@ -574,9 +589,8 @@ def parse_ppt_pages(content):
                 if it and it not in current_page["items"]:
                     current_page["items"].append(it)
         elif current_type == "content" and current_page:
-            if line.startswith('标题') or line.startswith('标题:'):
-                current_page["title"] = clean(line[3:].lstrip('：:'))
-            elif re.match(r'^(?:要点|摘要|说明)\s*[：:]\s*.+', line):
+            # 注意：content页的标题不需要特别处理，因为标题已经在页码行解析过了
+            if re.match(r'^(?:要点|摘要|说明)\s*[：:]\s*.+', line):
                 pt = clean(re.sub(r'^(?:要点|摘要|说明)\s*[：:]\s*', '', line))
                 if pt and len(pt) > 3:
                     if "points" not in current_page:
@@ -591,8 +605,10 @@ def parse_ppt_pages(content):
                     if pt not in current_page["points"]:
                         current_page["points"].append(pt)
         elif current_type == "end" and current_page:
-            if line.startswith('标题') or line.startswith('标题:'):
-                current_page["title"] = clean(line[3:].lstrip('：:')) or "谢谢"
+            if '标题' in line:
+                parts = re.split(r'[：:]', line, 1)
+                if len(parts) > 1:
+                    current_page["title"] = clean(parts[1]) or "谢谢"
         i += 1
 
     save_page()
@@ -767,15 +783,23 @@ def index():
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
-    data = request.get_json(force=True, silent=True)
-    if not data:
-        return jsonify({"error": "请求格式错误，需要 JSON  body"}), 400
-    topic = data.get("topic", "").strip()
-    requirements = data.get("requirements", "").strip()
-    user_content = data.get("user_content", "").strip()
-    slides = int(data.get("slides", 8))
-    style = data.get("style", "简洁明了")
-    model = data.get("model", "minimax-m27")
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            # 尝试从 form 获取数据
+            if request.form:
+                data = dict(request.form)
+            else:
+                return jsonify({"error": "请求格式错误，需要 JSON body"}), 400
+        
+        topic = data.get("topic", "").strip()
+        requirements = data.get("requirements", "").strip()
+        user_content = data.get("user_content", "").strip()
+        slides = int(data.get("slides", 8))
+        style = data.get("style", "简洁明了")
+        model = data.get("model", "minimax-m27")
+    except Exception as e:
+        return jsonify({"error": f"请求解析错误: {str(e)}"}), 400
 
     if not topic:
         return jsonify({"error": "请输入 PPT 主题"}), 400

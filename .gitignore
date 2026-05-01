@@ -28,6 +28,10 @@ push_via_api.py
 create_repo.json
 server.err
 server.log
+*.bak
+*.bak_orig
+*.html
+*.pptx
 
 # IDE
 .vscode/

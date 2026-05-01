@@ -1,55 +1,38 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <defs>
-    <!-- 渐变背景 -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#2D5A2D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4A7C4A;stop-opacity:1" />
     </linearGradient>
-    <!-- 紫色强调渐变 -->
-    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#667eea;stop-opacity:1" />
+    <linearGradient id="slideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F5F7F2;stop-opacity:1" />
     </linearGradient>
-    <!-- 圆角阴影滤镜 -->
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#667eea" flood-opacity="0.4"/>
-    </filter>
   </defs>
-
-  <!-- 圆形背景 -->
-  <circle cx="100" cy="100" r="95" fill="url(#bgGrad)" filter="url(#shadow)"/>
-
-  <!-- 幻灯片边框 -->
-  <rect x="40" y="32" width="120" height="80" rx="10" ry="10"
-        fill="white" opacity="0.95"/>
-  <!-- 幻灯片内容线 -->
-  <rect x="52" y="46" width="60" height="8" rx="3" fill="#667eea" opacity="0.8"/>
-  <rect x="52" y="60" width="96" height="6" rx="2" fill="#c4b5fd"/>
-  <rect x="52" y="72" width="80" height="6" rx="2" fill="#c4b5fd"/>
-  <rect x="52" y="84" width="88" height="6" rx="2" fill="#e5e7eb"/>
-
-  <!-- 播放按钮（右下） -->
-  <circle cx="136" cy="96" r="16" fill="url(#accentGrad)"/>
-  <polygon points="131,88 131,104 147,96" fill="white"/>
-
-  <!-- 装饰：左侧彩色方块 -->
-  <rect x="36" y="120" width="14" height="14" rx="3" fill="#fbbf24" opacity="0.9"/>
-  <rect x="36" y="140" width="14" height="14" rx="3" fill="#34d399" opacity="0.9"/>
-  <rect x="36" y="160" width="14" height="14" rx="3" fill="#f87171" opacity="0.9"/>
-
-  <!-- 主标题：Slide -->
-  <text x="72" y="158" font-family="'Segoe UI','PingFang SC',sans-serif"
-        font-size="38" font-weight="800" fill="white" letter-spacing="2">
-    Slide
-  </text>
-  <!-- 副标题：Craft -->
-  <text x="72" y="188" font-family="'Segoe UI','PingFang SC',sans-serif"
-        font-size="34" font-weight="800" fill="#a78bfa" letter-spacing="3">
-    Craft
-  </text>
-
-  <!-- 装饰弧线 -->
-  <path d="M 55 195 Q 100 210 145 195" stroke="#a78bfa" stroke-width="2.5"
-        fill="none" stroke-linecap="round" opacity="0.7"/>
+  
+  <!-- 背景圆 -->
+  <circle cx="100" cy="100" r="95" fill="url(#bgGrad)"/>
+  
+  <!-- 主幻灯片 -->
+  <rect x="50" y="45" width="100" height="75" rx="8" fill="url(#slideGrad)" stroke="#FFFFFF" stroke-width="3"/>
+  
+  <!-- 幻灯片内容线条 -->
+  <rect x="62" y="58" width="55" height="6" rx="2" fill="#2D5A2D"/>
+  <rect x="62" y="70" width="76" height="4" rx="2" fill="#4A7C4A" opacity="0.7"/>
+  <rect x="62" y="78" width="70" height="4" rx="2" fill="#4A7C4A" opacity="0.7"/>
+  <rect x="62" y="86" width="60" height="4" rx="2" fill="#4A7C4A" opacity="0.7"/>
+  
+  <!-- 小幻灯片（表示多页） -->
+  <rect x="75" y="130" width="50" height="38" rx="4" fill="url(#slideGrad)" stroke="#FFFFFF" stroke-width="2" opacity="0.9"/>
+  <rect x="82" y="138" width="28" height="3" rx="1" fill="#2D5A2D" opacity="0.8"/>
+  <rect x="82" y="144" width="36" height="2" rx="1" fill="#4A7C4A" opacity="0.6"/>
+  <rect x="82" y="149" width="32" height="2" rx="1" fill="#4A7C4A" opacity="0.6"/>
+  
+  <!-- AI 星星 -->
+  <g transform="translate(120, 125)">
+    <path d="M10,0 L12,7 L19,7 L14,11 L16,18 L10,14 L4,18 L6,11 L1,7 L8,7 Z" fill="#FFD700" stroke="#FFA500" stroke-width="0.5"/>
+  </g>
+  
+  <!-- 标题 -->
+  <text x="100" y="185" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SlideCraft</text>
 </svg>

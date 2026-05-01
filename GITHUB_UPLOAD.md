@@ -74,7 +74,7 @@ git push -u origin main
 如果你想保持项目的同步更新：
 
 ### 1. 先 Fork 我的仓库
-访问：https://github.com/yourusername/slidecraft
+访问：https://github.com/moon9001/slidecraft
 点击 "Fork" 按钮
 
 ### 2. 克隆你的 Fork
@@ -142,4 +142,4 @@ A: Settings → Collaborators → Add people
 
 ## 联系方式
 - 邮箱: 441462071@qq.com
-- 问题反馈: https://github.com/yourusername/slidecraft/issues
+- 问题反馈: https://github.com/moon9001/slidecraft/issues

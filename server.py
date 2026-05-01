@@ -781,6 +781,25 @@ def index():
         session['history'] = []
     return HTML_CONTENT
 
+@app.route("/test123")
+def test123():
+    return "Test 123 - If you see this, the route is working!"
+
+@app.route("/api_docs")
+def api_docs():
+    """API 文档页面"""
+    try:
+        # 使用绝对路径，基于当前文件的目录
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(current_dir, "api_docs.html")
+        
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return content
+    except Exception as e:
+        return f"<h1>API 文档加载失败</h1><p>{str(e)}</p>", 500
+
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
     try:

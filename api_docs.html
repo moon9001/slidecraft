@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlideCraft API 文档</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #5a67d8;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #4a5568;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        pre {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        .endpoint {
+            background: #e6fffa;
+            border-left: 4px solid #38b2ac;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .method {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            margin-right: 10px;
+        }
+        .method.post { background: #48bb78; }
+        .method.get { background: #4299e1; }
+        .warning {
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            background: #5a67d8;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← 返回 SlideCraft</a>
+        
+        <h1>📖 SlideCraft API 文档</h1>
+        
+        <p style="color: #666; margin-bottom: 30px;">SlideCraft 使用两步式API设计：先生成内容，再生成PPTX文件。</p>
+        
+        <h2>🔄 API 调用流程</h2>
+        
+        <div class="success">
+            <strong>完整流程：</strong><br>
+            1️⃣ 调用 <code>POST /api/generate</code> 生成PPT内容（AI生成大纲）<br>
+            2️⃣ 调用 <code>POST /api/download_pptx</code> 下载PPTX文件（根据内容生成）
+        </div>
+        
+        <h2>📝 API 端点详解</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> /api/generate</h3>
+            <p><strong>功能：</strong>生成PPT内容大纲（AI生成）</p>
+            <p><strong>请求体（JSON）：</strong></p>
+            <pre><code>{
+  "topic": "PPT主题（必需）",
+  "slides": 8,
+  "style": "简洁明了",
+  "model": "minimax-m27"
+}</code></pre>
+            <p><strong>响应（JSON）：</strong></p>
+            <pre><code>{
+  "content": "生成的PPT内容大纲（Markdown格式）"
+}</code></pre>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> /api/download_pptx</h3>
+            <p><strong>功能：</strong>下载PPTX文件</p>
+            <p><strong>请求体（JSON）：</strong></p>
+            <pre><code>{
+  "topic": "PPT主题（可选，用于文件名）",
+  "content": "第一步生成的content内容（必需）",
+  "theme": "森林墨"
+}</code></pre>
+            <p><strong>响应：</strong>PPTX文件（二进制流）</p>
+            <p><strong>响应头：</strong></p>
+            <pre><code>Content-Type: application/vnd.openxmlformats-officedocument.presentationml.presentation
+Content-Disposition: attachment; filename*=UTF-8''主题.pptx</code></pre>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> /api/generate_ppt</h3>
+            <p><strong>功能：</strong>生成HTML PPT预览（可选）</p>
+            <p><strong>请求体（JSON）：</strong></p>
+            <pre><code>{
+  "topic": "PPT主题（可选）",
+  "content": "第一步生成的content内容（必需）",
+  "theme": "森林墨"
+}</code></pre>
+            <p><strong>响应（JSON）：</strong></p>
+            <pre><code>{
+  "success": true,
+  "html": "<!DOCTYPE html>..."
+}</code></pre>
+        </div>
+        
+        <h2>💻 Python 调用示例</h2>
+        
+        <pre><code>import requests
+import json
+
+# 第一步：生成PPT内容
+print("=== 第一步：生成PPT内容 ===")
+generate_data = {
+    "topic": "人工智能应用",
+    "slides": 8,
+    "style": "专业严谨",
+    "model": "minimax-m27"
+}
+
+response = requests.post("http://localhost:5000/api/generate", json=generate_data)
+print(f"Status: {response.status_code}")
+
+if response.status_code != 200:
+    print(f"Error: {response.text}")
+    exit(1)
+
+result = response.json()
+content = result.get("content", "")
+print(f"Content length: {len(content)}")
+
+# 第二步：下载PPTX文件
+print("\n=== 第二步：下载PPTX文件 ===")
+download_data = {
+    "topic": "人工智能应用",
+    "content": content,
+    "theme": "森林墨"
+}
+
+response = requests.post("http://localhost:5000/api/download_pptx", json=download_data)
+
+print(f"Status: {response.status_code}")
+print(f"Content-Type: {response.headers.get('Content-Type')}")
+
+if response.status_code == 200:
+    with open("output.pptx", "wb") as f:
+        f.write(response.content)
+    print(f"PPTX文件已保存: output.pptx ({len(response.content)} bytes)")
+else:
+    print(f"Error: {response.text}")</code></pre>
+        
+        <h2>⚠️ 常见错误</h2>
+        
+        <div class="warning">
+            <strong>400 错误："请输入 PPT 主题"</strong><br>
+            <strong>原因：</strong>缺少 <code>topic</code> 参数<br>
+            <strong>解决：</strong>在请求体中添加 <code>"topic": "你的PPT主题"</code>
+        </div>
+        
+        <div class="warning">
+            <strong>400 错误："请先生成 PPT 大纲"</strong><br>
+            <strong>原因：</strong>调用 <code>/api/download_pptx</code> 时缺少 <code>content</code> 参数<br>
+            <strong>解决：</strong>先调用 <code>/api/generate</code> 获取 <code>content</code>，再传递给 <code>/api/download_pptx</code>
+        </div>
+        
+        <div class="warning">
+            <strong>500 错误："请求超时，请稍后重试"</strong><br>
+            <strong>原因：</strong>AI模型API调用超时<br>
+            <strong>解决：</strong>检查API Key和网络连接，或增加超时时间
+        </div>
+        
+        <h2>📚 其他API端点</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> /api/models</h3>
+            <p><strong>功能：</strong>获取已配置的模型列表</p>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> /api/themes</h3>
+            <p><strong>功能：</strong>获取可用的PPT主题列表</p>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> /health</h3>
+            <p><strong>功能：</strong>健康检查</p>
+        </div>
+        
+        <h2>💡 为什么使用两步式设计？</h2>
+        
+        <ol style="line-height: 2;">
+            <li><strong>灵活性：</strong>用户可以先预览生成的内容，确认无误后再生成PPTX</li>
+            <li><strong>性能：</strong>HTML预览可以快速展示，PPTX生成较慢但可以按需下载</li>
+            <li><strong>可调试性：</strong>如果PPTX生成失败，可以保留生成的内容用于调试</li>
+        </ol>
+        
+        <hr style="margin: 40px 0; border: none; border-top: 1px solid #e2e8f0;">
+        
+        <p style="color: #999; font-size: 0.9em; text-align: center;">
+            SlideCraft - AI PPT 生成器<br>
+            最后更新：2026-05-02
+        </p>
+    </div>
+</body>
+</html>

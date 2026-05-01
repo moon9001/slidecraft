@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SlideCraft - AI PPT 生成器</title>
-    <link rel="icon" href="logo.svg" type="image/svg+xml">
+    <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+    <link rel="shortcut icon" href="/static/logo.svg" type="image/svg+xml">
     <style>
         :root {
             /* 默认：科技风 */
@@ -237,7 +238,7 @@
     <div class="container">
         <div class="header">
             <div class="header-logo">
-                <img src="logo.svg" alt="SlideCraft Logo" style="width: 60px; height: 60px;">
+                <img src="/static/logo.svg" alt="SlideCraft Logo" style="width: 60px; height: 60px;">
             </div>
             <h1>SlideCraft - AI PPT 生成器</h1>
             <p class="subtitle">智能生成 · 风格多样 · 便捷编辑</p>
@@ -723,6 +724,14 @@
             error.textContent = '❌ ' + msg;
             error.classList.add('show');
         }
+        
+        // 添加页脚链接
+        document.addEventListener('DOMContentLoaded', function() {
+            const footer = document.createElement('div');
+            footer.style.cssText = 'text-align:center; padding:20px; color:#999; font-size:0.9em;';
+            footer.innerHTML = '<a href="/api_docs" style="color:#667eea; text-decoration:none;">📖 API 文档</a> | SlideCraft - AI PPT 生成器';
+            document.body.appendChild(footer);
+        });
 
         function copyResult() {
             navigator.clipboard.writeText(resultContent.textContent).then(() => {

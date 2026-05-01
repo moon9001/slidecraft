@@ -15,6 +15,7 @@ session_data/
 
 # 日志
 *.log
+flask*.log
 
 # 测试/调试文件
 *.err
@@ -22,6 +23,7 @@ session_data/
 *.b64
 test_*.py
 test_*.pptx
+test_*.json
 test_*.html
 gen_*.py
 push_via_api.py
@@ -30,8 +32,10 @@ server.err
 server.log
 *.bak
 *.bak_orig
-*.html
-*.pptx
+fix_parse.py
+generate_*.json
+*测试*.html
+*测试*.pptx
 
 # IDE
 .vscode/

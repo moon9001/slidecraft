@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D5A2D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4A7C4A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="slideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F5F7F2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆 -->
+  <circle cx="100" cy="100" r="95" fill="url(#bgGrad)"/>
+  
+  <!-- 主幻灯片 -->
+  <rect x="50" y="45" width="100" height="75" rx="8" fill="url(#slideGrad)" stroke="#FFFFFF" stroke-width="3"/>
+  
+  <!-- 幻灯片内容线条 -->
+  <rect x="62" y="58" width="55" height="6" rx="2" fill="#2D5A2D"/>
+  <rect x="62" y="70" width="76" height="4" rx="2" fill="#4A7C4A" opacity="0.7"/>
+  <rect x="62" y="78" width="70" height="4" rx="2" fill="#4A7C4A" opacity="0.7"/>
+  <rect x="62" y="86" width="60" height="4" rx="2" fill="#4A7C4A" opacity="0.7"/>
+  
+  <!-- 小幻灯片（表示多页） -->
+  <rect x="75" y="130" width="50" height="38" rx="4" fill="url(#slideGrad)" stroke="#FFFFFF" stroke-width="2" opacity="0.9"/>
+  <rect x="82" y="138" width="28" height="3" rx="1" fill="#2D5A2D" opacity="0.8"/>
+  <rect x="82" y="144" width="36" height="2" rx="1" fill="#4A7C4A" opacity="0.6"/>
+  <rect x="82" y="149" width="32" height="2" rx="1" fill="#4A7C4A" opacity="0.6"/>
+  
+  <!-- AI 星星 -->
+  <g transform="translate(120, 125)">
+    <path d="M10,0 L12,7 L19,7 L14,11 L16,18 L10,14 L4,18 L6,11 L1,7 L8,7 Z" fill="#FFD700" stroke="#FFA500" stroke-width="0.5"/>
+  </g>
+  
+  <!-- 标题 -->
+  <text x="100" y="185" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SlideCraft</text>
+</svg>

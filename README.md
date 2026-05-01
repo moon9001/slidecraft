@@ -1,6 +1,6 @@
 # SlideCraft —— AI PPT 生成器
 
-> 支持多种主流 AI 模型（ChatGPT / DeepSeek / MiniMax 等），一键生成专业 PPT 大纲、HTML 预览与 PPTX 下载
+> 支持多种主流 AI 模型（DeepSeek / MiniMax / OpenAI 等），一键生成专业 PPT 大纲、HTML 预览与 PPTX 下载
 
 <p align="center">
   <img src="logo.svg" alt="SlideCraft Logo" width="200">
@@ -8,13 +8,13 @@
 
 ## ✨ 功能特性
 
-- **多模型支持** —— ChatGPT、DeepSeek V3/V4/R1、MiniMax M27 等，灵活切换
+- **多模型支持** —— DeepSeek V3/V4/R1、MiniMax M27、GPT-4 等，灵活切换
 - **三步生成** —— 输入主题 → AI 生成大纲 → 一键下载 PPTX / HTML
-- **科技云 API 开箱即用** —— 内置科技云（uni-api.cstcloud.cn）配置，无需额外申请 Key
-- **丰富主题** —— 森林墨 / 墨水经典 / 靛蓝瓷，可自由扩展
+- **丰富主题** —— 森林墨 / 樱粉 / 星空蓝，可自由扩展
 - **历史记录** —— 浏览器会话内保留最近 10 份大纲，随时回溯
+- **纯 Python 实现** —— 无需安装 Microsoft Office，跨平台运行
 
-## 🚀 本地部署
+## 🚀 快速开始
 
 ### 1. 克隆仓库
 
@@ -29,18 +29,33 @@ cd slidecraft
 pip install -r requirements.txt
 ```
 
-### 3. 配置 API Key（可选）
+### 3. 配置 API Key
 
-默认已预配置**科技云 API Key**，可直接启动使用。
-
-如需使用其他模型，复制 `.env.example` 为 `.env` 并填入对应 Key：
+复制 `.env.example` 为 `.env` 并填入你的 API Key：
 
 ```bash
 cp .env.example .env
 # 编辑 .env，填入 API Key
 ```
 
-> ⚠️ **注意**：`.env` 文件已被 `.gitignore` 保护，**私有 Key 永远不会被提交到 Git**。
+#### 支持的服务商
+
+**DeepSeek（推荐）**
+- 官网：https://platform.deepseek.com/
+- API Key：https://platform.deepseek.com/api_keys
+- 环境变量：`DEEPSEEK_API_KEY`
+
+**MiniMax**
+- 官网：https://www.minimaxi.com/
+- API Key：在控制台获取
+- 环境变量：`MINIMAX_API_KEY`
+
+**OpenAI**
+- 官网：https://platform.openai.com/
+- API Key：https://platform.openai.com/api-keys
+- 环境变量：`OPENAI_API_KEY`
+
+> 💡 **提示**：你可以使用任意 OpenAI 兼容的 API 服务（如本地 OAI模型），只需修改 `SLIDECRAFT_API_URL` 环境变量。
 
 ### 4. 启动服务
 
@@ -52,36 +67,79 @@ python server.py
 
 ## 🔑 环境变量说明
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `MINIMAX_API_KEY` | MiniMax API Key | 已预配置科技云 Key ✅ |
-| `DEEPSEEK_API_KEY` | DeepSeek API Key | 已预配置科技云 Key ✅ |
-| `SLIDECRAFT_DEFAULT_MODEL` | 默认模型 | `minimax-m27` |
-| `SLIDECRAFT_API_URL` | API 地址 | `https://uni-api.cstcloud.cn/v1/chat/completions` |
+| 变量 | 说明 | 必填 | 示例 |
+|------|------|------|------|
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | ✅ 是 | `sk-...` |
+| `MINIMAX_API_KEY` | MiniMax API Key | ❌ 否 | `your-key` |
+| `OPENAI_API_KEY` | OpenAI API Key | ❌ 否 | `sk-...` |
+| `SLIDECRAFT_DEFAULT_MODEL` | 默认模型 | ❌ 否 | `deepseek-chat` |
+| `SLIDECRAFT_API_URL` | 自定义 API 地址 | ❌ 否 | `https://your-api.com/v1/chat/completions` |
+
+### .env 示例
+
+```bash
+# DeepSeek（必需）
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+
+# MiniMax（可选）
+MINIMAX_API_KEY=your-minimax-key
+
+# OpenAI（可选）
+OPENAI_API_KEY=sk-your-openai-key
+
+# 默认模型（可选，默认为 deepseek-chat）
+SLIDECRAFT_DEFAULT_MODEL=deepseek-chat
+
+# 自定义 API 地址（可选，用于 OpenAI 兼容的服务）
+# SLIDECRAFT_API_URL=https://api.openai.com/v1/chat/completions
+```
+
+> ⚠️ **注意**：`.env` 文件已被 `.gitignore` 保护，**私有 Key 永远不会被提交到 Git**。
+
+## 🤖 支持的模型
+
+在 `.env` 中配置对应 API Key 后，以下模型将自动出现在前端下拉列表中：
+
+| 模型 ID | 名称 | 需要 API Key |
+|---------|------|-------------|
+| `deepseek-chat` | DeepSeek V3（均衡） | `DEEPSEEK_API_KEY` |
+| `deepseek-reasoner` | DeepSeek R1（推理） | `DEEPSEEK_API_KEY` |
+| `deepseek-v4-flash` | DeepSeek V4 Flash（极速） | `DEEPSEEK_API_KEY` |
+| `minimax-m27` | MiniMax M27（默认，推荐） | `MINIMAX_API_KEY` |
+| `gpt-4o` | GPT-4o（强大） | `OPENAI_API_KEY` |
+| `gpt-4o-mini` | GPT-4o Mini（快速） | `OPENAI_API_KEY` |
+
+### 添加自定义模型
+
+编辑 `server.py` 中的 `PRESET_MODELS` 字典，添加你的模型配置：
+
+```python
+PRESET_MODELS = {
+    "your-model-id": {
+        "name": "你的模型名称",
+        "api_key_env": "YOUR_API_KEY_ENV",
+        "api_url": "https://your-api.com/v1/chat/completions",
+        "default": False
+    },
+    # ... 其他模型
+}
+```
 
 ## 📂 目录结构
 
 ```
 slidecraft/
 ├── server.py          # Flask 后端服务
-├── index.html         # 前端页面（含 Favicon）
-├── logo.svg          # 项目 Logo
-├── .env.example      # 环境变量示例（无真实 Key）
-├── .env              # 环境变量配置（不提交，已被 gitignore）
+├── index.html         # 前端页面
+├── api_docs.html      # API 文档页面
+├── logo.svg           # 项目 Logo
+├── static/            # 静态资源
+│   └── logo.svg      # 浏览器 Favicon
+├── .env.example       # 环境变量示例（无真实 Key）
+├── .env               # 环境变量配置（不提交，已被 gitignore）
 ├── requirements.txt   # Python 依赖
-└── session_data/     # 会话数据（自动创建）
+└── README.md          # 本文件
 ```
-
-## 🤖 支持的模型
-
-| 模型 | 名称 | 需要 API Key |
-|------|------|-------------|
-| `minimax-m27` | MiniMax M27（默认，推荐） | ✅ 已预配置 |
-| `deepseek-v4-flash` | DeepSeek V4 Flash（极速） | ✅ 已预配置 |
-| `deepseek-chat` | DeepSeek V3（均衡） | ✅ 已预配置 |
-| `deepseek-reasoner` | DeepSeek R1（推理） | ✅ 已预配置 |
-
-> 在 `.env` 中填入对应 Key 后，模型将自动出现在前端下拉列表中。
 
 ## 🛠 技术栈
 
@@ -90,11 +148,92 @@ slidecraft/
 - **PPTX 生成**：纯 Python XML（无需安装 Microsoft Office）
 - **AI 接口**：OpenAI 兼容接口（可接入任意兼容服务）
 
+## 📖 API 文档
+
+启动服务后，访问 **http://localhost:5000/api_docs** 查看完整的 API 文档。
+
+### 快速 API 调用示例
+
+**第一步：生成 PPT 内容**
+
+```bash
+curl -X POST http://localhost:5000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "人工智能应用",
+    "slides": 8,
+    "style": "专业严谨",
+    "model": "deepseek-chat"
+  }'
+```
+
+**第二步：下载 PPTX 文件**
+
+```bash
+curl -X POST http://localhost:5000/api/download_pptx \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "人工智能应用",
+    "content": "[第一步返回的 content 字段]",
+    "theme": "森林墨"
+  }' \
+  -o output.pptx
+```
+
 ## 🔒 安全说明
 
 - ✅ `.env` 文件已被 `.gitignore` 忽略，**真实 API Key 不会进入 Git 历史**
 - ✅ 仓库中仅包含 `.env.example` 示例文件，无任何真实 Key
 - ✅ 所有 API Key 均在服务器端读取，不会暴露给前端
+- ✅ 会话 ID 使用 `secrets.token_hex()` 安全生成
+
+## 🌟 特色功能
+
+### 1. 多种 PPT 主题
+
+内置多套专业主题，可在生成时选择：
+- 森林墨（默认）
+- 樱粉
+- 星空蓝
+- 向日葵
+- 更多主题持续添加中...
+
+### 2. HTML 预览
+
+生成 PPTX 前，可先生成 HTML 预览，快速查看效果。
+
+### 3. 历史记录
+
+浏览器会话内自动保存最近 10 份生成的大纲，随时回溯和重新下载。
+
+### 4. 提供内容
+
+除了主题，你还可以提供参考资料，AI 会整合到 PPT 中。
+
+## 🐛 常见问题
+
+### Q: 为什么生成失败？
+
+A: 请检查：
+1. `.env` 文件中是否配置了正确的 API Key
+2. API Key 是否有足够的额度
+3. 网络连接是否正常
+
+### Q: 为什么下载的 PPTX 打不开？
+
+A: 可能是内容解析出错。请提交 Issue，并附上生成的大纲内容。
+
+### Q: 如何添加新的 AI 模型？
+
+A: 编辑 `server.py` 中的 `PRESET_MODELS` 字典，添加模型配置。
+
+### Q: 是否支持本地 OAI模型？
+
+A: 支持！只需在 `.env` 中设置：
+```bash
+SLIDECRAFT_API_URL=http://localhost:11434/v1/chat/completions
+DEEPSEEK_API_KEY=oAI模型  # OAI模型 不需要真实 Key
+```
 
 ## 📄 许可证
 
@@ -102,4 +241,9 @@ MIT License
 
 ## 📬 联系
 
-技术问题请联系：**441462071@qq.com**
+- **Issue**：https://github.com/moon9001/slidecraft/issues
+- **Email**：441462071@qq.com
+
+---
+
+⭐ 如果这个项目对你有帮助，请给它一个 Star！

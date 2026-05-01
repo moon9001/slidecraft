@@ -1,6 +1,5 @@
 # 环境配置
 .env
-.env.example
 
 # Python
 __pycache__/
@@ -17,15 +16,18 @@ session_data/
 # 日志
 *.log
 
-# 测试文件
+# 测试/调试文件
+*.err
+*.out
+*.b64
 test_*.py
 test_*.pptx
+test_*.html
 gen_*.py
+push_via_api.py
 create_repo.json
-
-# Python 生成文件
-植物多样性PPT*.html
-植物多样性PPT*.pptx
+server.err
+server.log
 
 # IDE
 .vscode/

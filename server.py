@@ -502,62 +502,100 @@ def generate_ppt_html(title, pages, theme="森林墨"):
     return html
 
 def parse_ppt_pages(content):
-    """解析 AI 生成的 PPT 内容为页面结构"""
+    """解析 AI 生成的内容为页面结构 - 逐行可靠版"""
+    import re
     pages = []
-    lines = content.split('\n')
+    lines = [l.strip() for l in content.splitlines() if l.strip()]
     current_page = None
-    current_section = None
+    current_type = None
+    collecting = []
 
-    for line in lines:
-        line = line.strip()
-        if not line:
+    def clean(s):
+        return s.strip().rstrip("】】")
+
+    def save_page():
+        nonlocal current_page, collecting
+        if current_page is not None:
+            for line in collecting:
+                line = clean(line)
+                if line and len(line) > 3:
+                    if "points" not in current_page:
+                        current_page["points"] = []
+                    if line not in current_page["points"]:
+                        current_page["points"].append(line)
+            collecting = []
+            if current_page.get("type") == "end" and pages and pages[-1].get("type") == "end":
+                pass  # 跳过重复的结束页
+            else:
+                pages.append(current_page)
+            current_page = None
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        low = line.lower()
+
+        # 检测【第X页：标题】
+        m = re.match(r'^【?第?\s*(\d+)\s*页[：:\s]+(.*)', line)
+        if m:
+            save_page()
+            num = int(m.group(1))
+            sec = clean(m.group(2))
+            sec_low = sec.lower()
+            if '封面' in sec_low or 'cover' in sec_low:
+                current_page = {"type": "cover", "title": "", "subtitle": "", "meta": ""}
+            elif '目录' in sec_low or 'toc' in sec_low:
+                current_page = {"type": "toc", "items": []}
+            elif '结束' in sec_low or '谢谢' in sec_low or 'end' in sec_low:
+                current_page = {"type": "end", "title": clean(sec.replace('谢谢','').replace('结束','').strip()) or "谢谢"}
+            else:
+                current_page = {"type": "content", "title": sec, "points": []}
+            current_type = current_page["type"] if current_page else None
+            collecting = []
+            i += 1
             continue
 
-        if ('第1页' in line or '封面' in line or
-            (line.startswith('【') and '封面' in line)):
-            if current_page:
-                pages.append(current_page)
-            current_page = {"type": "cover", "title": "", "subtitle": "", "meta": ""}
-            current_section = "cover"
-        elif '目录' in line or '第2页' in line:
-            if current_page:
-                pages.append(current_page)
-            current_page = {"type": "toc", "items": []}
-            current_section = "toc"
-        elif '结束' in line or '谢谢' in line or (line.startswith('【') and '结束' in line):
-            if current_page:
-                pages.append(current_page)
-            current_page = {"type": "end", "title": "谢谢"}
-            current_section = "end"
-        elif line.startswith('标题：') or line.startswith('【标题】'):
-            if current_page and current_page["type"] == "content":
-                current_page["title"] = line.replace('标题：', '').replace('【标题】', '').strip()
-        elif line.startswith('副标题：') or '副标题' in line:
-            if current_page and current_page["type"] == "cover":
-                current_page["subtitle"] = line.replace('副标题：', '').strip()
-        elif line.startswith('元信息：') or '元信息' in line:
-            if current_page and current_page["type"] == "cover":
-                current_page["meta"] = line.replace('元信息：', '').strip()
-        elif line and line[0].isdigit() and '.' in line[:3]:
-            if current_page and current_page["type"] == "toc":
-                item = line[line.index('.')+1:].strip()
-                if item:
-                    current_page["items"].append(item)
-        elif line.startswith('• ') or line.startswith('- ') or line.startswith('要点：'):
-            if current_page and current_page["type"] == "content":
-                if "points" not in current_page:
-                    current_page["points"] = []
-                point = line.replace('要点：', '').replace('• ', '').replace('- ', '').strip()
-                if point:
-                    current_page["points"].append(point)
-        elif current_section == "content" and len(line) > 10 and len(line) < 200:
-            if current_page and current_page["type"] == "content":
-                if "points" not in current_page:
-                    current_page["points"] = []
-                current_page["points"].append(line)
+        if current_page is None:
+            current_page = {"type": "cover", "title": clean(line), "subtitle": "", "meta": ""}
+            current_type = "cover"
+            collecting = []
+            i += 1
+            continue
 
-    if current_page:
-        pages.append(current_page)
+        if current_type == "cover":
+            if line.startswith('标题') or line.startswith('标题:'):
+                current_page["title"] = clean(line[3:].lstrip('：:'))
+            elif line.startswith('副标题') or line.startswith('副标题:'):
+                current_page["subtitle"] = clean(line[4:].lstrip('：:'))
+        elif current_type == "toc" and current_page:
+            m2 = re.match(r'^\s*[一二三四五六七八九十\d]+[.、：:\s]\s*(.+)', line)
+            if m2:
+                it = clean(m2.group(1))
+                if it and it not in current_page["items"]:
+                    current_page["items"].append(it)
+        elif current_type == "content" and current_page:
+            if line.startswith('标题') or line.startswith('标题:'):
+                current_page["title"] = clean(line[3:].lstrip('：:'))
+            elif re.match(r'^(?:要点|摘要|说明)\s*[：:]\s*.+', line):
+                pt = clean(re.sub(r'^(?:要点|摘要|说明)\s*[：:]\s*', '', line))
+                if pt and len(pt) > 3:
+                    if "points" not in current_page:
+                        current_page["points"] = []
+                    if pt not in current_page["points"]:
+                        current_page["points"].append(pt)
+            elif re.match(r'^[•\-*]\s+.+', line):
+                pt = clean(line[1:].strip())
+                if pt and len(pt) > 3:
+                    if "points" not in current_page:
+                        current_page["points"] = []
+                    if pt not in current_page["points"]:
+                        current_page["points"].append(pt)
+        elif current_type == "end" and current_page:
+            if line.startswith('标题') or line.startswith('标题:'):
+                current_page["title"] = clean(line[3:].lstrip('：:')) or "谢谢"
+        i += 1
+
+    save_page()
 
     if not pages:
         pages = [{"type": "cover", "title": "PPT", "subtitle": "", "meta": ""}]
@@ -578,25 +616,37 @@ def create_pptx_xml(title, pages, theme="森林墨"):
         "靛蓝瓷": {"bg": "F8F9FC", "text": "1A1A2E", "accent": "4A6FA5", "secondary": "6B8CC4"},
     }.get(theme, {"bg": "F5F7F2", "text": "1A2E1A", "accent": "2D5A2D", "secondary": "4A7C4A"})
 
-    content_types = '''<?xml version="1.0" encoding="UTF-8"?>
+    num_slides = len(pages)
+
+    # 动态生成 Content_Types.xml（包含所有 slide）
+    slide_overrides = "".join(
+        f'\n    <Override PartName="/ppt/slides/slide{i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>'
+        for i in range(num_slides)
+    )
+    content_types = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
     <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
     <Default Extension="xml" ContentType="application/xml"/>
-    <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
-    <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
+    <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>{slide_overrides}
 </Types>'''
 
+    # 主 rels
     rels = '''<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
     <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
 </Relationships>'''
 
-    pres_rels = '''<?xml version="1.0" encoding="UTF-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>
+    # presentation rels（每个 slide 一个 relationship）
+    pres_rels_items = "".join(
+        f'\n    <Relationship Id="rId{i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide{i+1}.xml"/>'
+        for i in range(num_slides)
+    )
+    pres_rels = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">{pres_rels_items}
 </Relationships>'''
 
-    slide_ids = "".join(f'<sldId id="{256+i}" r:id="rId{i+1}"/>' for i in range(len(pages)))
+    # presentation.xml（所有 slide 的引用）
+    slide_ids = "".join(f'<p:sldId id="{256+i}" r:id="rId{i+1}"/>' for i in range(num_slides))
     presentation = f'''<?xml version="1.0" encoding="UTF-8"?>
 <p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
     xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
@@ -615,6 +665,9 @@ def create_pptx_xml(title, pages, theme="森林墨"):
             page_type = page.get("type", "content")
             slide_xml = generate_slide_xml(i+1, page, colors, page_type)
             zf.writestr(f'ppt/slides/slide{i+1}.xml', slide_xml)
+            # 每个 slide 也要有 rels 文件
+            zf.writestr(f'ppt/slides/_rels/slide{i+1}.xml.rels',
+                '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>')
 
     return zip_buffer.getvalue()
 

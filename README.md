@@ -102,8 +102,4 @@ MIT License
 
 ## 📬 联系
 
-技术问题请联系：**wangpeng@mail.kib.ac.cn**
-
----
-
-> 本服务由 **WorkBuddy AI** 辅助开发 🙌
+技术问题请联系：**441462071@qq.com**

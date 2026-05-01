@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlideCraft - AI PPT 生成器</title>
+    <style>
+        :root {
+            /* 默认：科技风 */
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --primary-light: #a3bffa;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg-color: #f7fafc;
+            --text-color: #1a202c;
+            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
+            --accent-color: #667eea;
+        }
+        
+        /* 植物所风 */
+        .theme-plant {
+            --primary: #2d8a4e;
+            --primary-dark: #1a5f2a;
+            --primary-light: #68d391;
+            --bg-gradient: linear-gradient(135deg, #1a5f2a 0%, #2d8a4e 50%, #3da35d 100%);
+            --bg-color: #f0f9f0;
+            --text-color: #1a2e1a;
+            --header-bg: linear-gradient(135deg, #1a5f2a 0%, #2d8a4e 100%);
+            --card-shadow: 0 10px 40px rgba(45, 138, 78, 0.2);
+            --accent-color: #2d8a4e;
+        }
+        
+        /* 学术风 */
+        .theme-academic {
+            --primary: #2d3748;
+            --primary-dark: #1a202c;
+            --primary-light: #718096;
+            --bg-gradient: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            --bg-color: #ffffff;
+            --text-color: #1a202c;
+            --header-bg: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            --card-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            --accent-color: #2d3748;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-color);
+        }
+        
+        /* 风格切换器 */
+        .theme-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .theme-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .theme-btn:hover { transform: scale(1.1); }
+        .theme-btn.active { border-color: var(--text-color); }
+        .theme-btn::after {
+            content: attr(data-name);
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .theme-btn:hover::after { opacity: 1; }
+        .btn-tech { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .btn-plant { background: linear-gradient(135deg, #1a5f2a, #2d8a4e); }
+        .btn-academic { background: linear-gradient(135deg, #2d3748, #4a5568); }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .header {
+            background: var(--header-bg);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        .header-logo svg { width: 50px; height: 50px; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; font-weight: 700; }
+        .header .subtitle { opacity: 0.9; font-size: 14px; margin-bottom: 5px; }
+        .header .contact { font-size: 12px; opacity: 0.8; }
+        .content { padding: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-color); }
+        label .optional { font-weight: normal; color: #888; font-size: 13px; }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e1e1;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
+        textarea { min-height: 100px; resize: vertical; }
+        .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        button {
+            padding: 16px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+        }
+        button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
+        button:disabled { opacity: 0.7; cursor: not-allowed; }
+        button.secondary { background: #f5f5f5; color: #666; font-size: 14px; padding: 10px 16px; }
+        button.secondary:hover { background: #eee; }
+        button.ppt-btn { background: linear-gradient(135deg, #c75000 0%, #ff8c00 100%); font-size: 16px; padding: 14px 20px; }
+        button.ppt-btn:hover:not(:disabled) { box-shadow: 0 5px 20px rgba(199,80,0,0.4); }
+        button.download-btn { background: linear-gradient(135deg, #0070c0 0%, #00b0f0 100%); font-size: 16px; padding: 14px 20px; }
+        button.download-btn:hover:not(:disabled) { box-shadow: 0 5px 20px rgba(0,112,192,0.4); }
+        .btn-row { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-row button { flex: 1; min-width: 150px; }
+        #result { margin-top: 30px; display: none; }
+        #result.show { display: block; }
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.8;
+            border: 2px solid #e8e8e8;
+            min-height: 100px;
+        }
+        .generating-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+            border: 2px solid var(--primary);
+            position: relative;
+        }
+        .generating-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e8e8e8; }
+        .generating-header .dot { width: 12px; height: 12px; background: var(--primary); border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } }
+        .generating-header .status { font-weight: 600; color: var(--primary); font-size: 15px; }
+        .generating-content { white-space: pre-wrap; font-size: 14px; line-height: 1.8; color: #333; max-height: 400px; overflow-y: auto; }
+        .generating-content .cursor { display: inline-block; width: 2px; height: 18px; background: var(--primary); animation: blink 0.8s infinite; vertical-align: middle; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .generating-stats { position: absolute; bottom: 15px; right: 15px; font-size: 12px; color: #888; }
+        .generating-close { position: absolute; top: 15px; right: 15px; background: #ff6b6b; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 30px; }
+        .error { background: #fff5f5; color: #c00; padding: 15px; border-radius: 10px; margin-top: 20px; display: none; border: 2px solid #fee; }
+        .error.show { display: block; }
+        .tips { background: var(--bg-color); border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 20px; border-radius: 0 10px 10px 0; font-size: 14px; color: var(--text-color); }
+        .tips strong { display: block; margin-bottom: 5px; }
+        .copy-btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 15px; margin-right: 10px; }
+        .clear-btn { background: #ff6b6b; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 15px; }
+        .history-section { margin-top: 30px; padding-top: 20px; border-top: 2px dashed #e1e1e1; }
+        .history-item { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: background 0.2s; }
+        .history-item:hover { background: #f0f0f0; }
+        .history-item .topic { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .history-item .meta { font-size: 12px; color: #888; }
+        .model-info, .theme-info { background: var(--bg-color); border-radius: 10px; padding: 15px; margin-bottom: 20px; font-size: 14px; }
+        .theme-info { border-left: 4px solid var(--primary); }
+        .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .theme-option { padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 13px; }
+        .theme-option:hover { border-color: var(--primary); }
+        .theme-option.selected { border-color: var(--primary); background: var(--bg-color); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; }
+        .modal.show { display: flex; flex-direction: column; }
+        .modal-header { padding: 15px 20px; background: #333; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 16px; }
+        .modal-close { background: #666; color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 20px; }
+        .modal-close:hover { background: #ff6b6b; }
+        .modal-body { flex: 1; overflow: hidden; }
+        .modal-body iframe { width: 100%; height: 100%; border: none; }
+        .download-info { background: #e3f2fd; border-left: 4px solid #0070c0; padding: 15px; margin-top: 20px; border-radius: 0 10px 10px 0; font-size: 14px; color: #0d47a1; }
+        .download-info strong { display: block; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <!-- 风格切换器 -->
+    <div class="theme-switcher">
+        <button class="theme-btn btn-tech active" data-theme="tech" data-name="科技风" title="科技风"></button>
+        <button class="theme-btn btn-plant" data-theme="plant" data-name="植物所风" title="植物所风"></button>
+        <button class="theme-btn btn-academic" data-theme="academic" data-name="学术风" title="学术风"></button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-logo">
+                <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="8" width="40" height="30" rx="3" stroke="white" stroke-width="2.5" fill="none"/>
+                    <rect x="10" y="13" width="12" height="8" rx="1" fill="white" opacity="0.6"/>
+                    <rect x="25" y="13" width="15" height="3" rx="1" fill="white" opacity="0.8"/>
+                    <rect x="25" y="19" width="10" height="2" rx="1" fill="white" opacity="0.5"/>
+                    <path d="M25 38 L25 32 L35 38 Z" fill="white"/>
+                    <circle cx="18" cy="42" r="2" fill="white"/>
+                </svg>
+            </div>
+            <h1>SlideCraft - AI PPT 生成器</h1>
+            <p class="subtitle">智能生成 · 风格多样 · 便捷编辑</p>
+            <p class="contact">📧 技术联系：441462071@qq.com</p>
+        </div>
+        <div class="content">
+            <div class="tips">
+                <strong>💡 使用说明</strong>
+                输入PPT主题，AI将生成完整大纲！<br>
+                • 点击 <strong>🎨 生成 HTML PPT</strong> - 网页预览，支持各种特效<br>
+                • 点击 <strong>📥 下载 PPTX</strong> - 直接下载可编辑的 PowerPoint 文件<br>
+                <span style="color: #ff6b6b;">⚠️ 如需使用，请先配置环境变量，详见 <a href="https://github.com/yourusername/slidecraft" target="_blank">GitHub</a></span>
+            </div>
+
+            <!-- API Key 配置提示 -->
+            <div class="model-info" id="apiConfigInfo" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="font-size: 18px;">⚙️</span>
+                    <strong>API 配置提示</strong>
+                </div>
+                <p style="font-size: 13px; line-height: 1.8;">
+                    当前未检测到已配置的 API Key。请设置以下环境变量之一：<br>
+                    <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">OPENAI_API_KEY</code>
+                    <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">DEEPSEEK_API_KEY</code>
+                    <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">DASHSCOPE_API_KEY</code>
+                    <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">ZHIPU_API_KEY</code>
+                    <br>
+                    <a href="https://github.com/yourusername/slidecraft" target="_blank" style="color: var(--primary);">查看完整配置说明 →</a>
+                </p>
+            </div>
+
+            <div class="model-info">
+                <label style="margin-bottom: 10px;">🤖 选择AI模型</label>
+                <select id="modelSelect">
+                    <option value="">加载中...</option>
+                </select>
+                <div id="modelStatus" style="font-size: 12px; color: #888; margin-top: 8px;"></div>
+            </div>
+
+            <div class="theme-info">
+                <label style="margin-bottom: 10px;">🎨 选择PPT主题色</label>
+                <div class="theme-grid">
+                    <div class="theme-option selected" data-theme="森林墨">🌲 森林墨<br><small>自然/植物</small></div>
+                    <div class="theme-option" data-theme="墨水经典">📖 墨水经典<br><small>商务/通用</small></div>
+                    <div class="theme-option" data-theme="靛蓝瓷">🔷 靛蓝瓷<br><small>科技/研究</small></div>
+                </div>
+            </div>
+
+            <form id="pptForm">
+                <div class="form-group">
+                    <label>📌 PPT 主题 *</label>
+                    <input type="text" id="topic" placeholder="例如：植物多样性保护研究进展" required>
+                </div>
+
+                <div class="form-group">
+                    <label>📝 粘贴您的文案内容 <span class="optional">（可选）</span></label>
+                    <textarea id="userContent" placeholder="如果您已经有相关文字内容，可以粘贴在这里，AI将结合您的内容生成PPT..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>📋 详细要求 <span class="optional">（可选）</span></label>
+                    <textarea id="requirements" placeholder="例如：
+- 需要包含研究背景介绍
+- 重点突出2-3个核心研究成果
+- 适合学术汇报场景"></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label>📄 PPT 页数</label>
+                        <select id="slides">
+                            <option value="5">5 页（简洁版）</option>
+                            <option value="8" selected>8 页（标准版）</option>
+                            <option value="12">12 页（详细版）</option>
+                            <option value="15">15 页（完整版）</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>🎨 内容风格</label>
+                        <select id="style">
+                            <option value="专业学术" selected>专业学术</option>
+                            <option value="商业汇报">商业汇报</option>
+                            <option value="简洁明了">简洁明了</option>
+                            <option value="生动有趣">生动有趣</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>🤖 当前模型</label>
+                        <div style="padding: 12px 0; font-weight: 600;">
+                            <span id="currentModel" style="color: var(--primary);">MiniMax M27</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="submit" id="submitBtn">🚀 生成 PPT 大纲</button>
+                </div>
+            </form>
+
+            <div class="error" id="error"></div>
+
+            <div id="generating" style="display: none; margin-top: 30px;">
+                <div class="generating-box">
+                    <button class="generating-close" onclick="cancelGenerate()">×</button>
+                    <div class="generating-header">
+                        <div class="dot"></div>
+                        <div class="status" id="generatingStatus">🤖 AI 正在生成中...</div>
+                    </div>
+                    <div class="generating-content" id="generatingContent">
+                        <span id="generatingText"></span><span class="cursor"></span>
+                    </div>
+                    <div class="generating-stats" id="generatingStats">已生成 0 字</div>
+                </div>
+            </div>
+
+            <div id="result">
+                <label style="margin-bottom: 15px;">📝 生成结果：</label>
+                <div class="result-box" id="resultContent"></div>
+                <button class="copy-btn" onclick="copyResult()">📋 复制大纲</button>
+                <button class="clear-btn" onclick="startNew()" style="margin-left: 0;">🔄 继续生成</button>
+
+                <div class="btn-row" style="margin-top: 20px;">
+                    <button class="ppt-btn" id="generatePptBtn" onclick="generatePPT()" disabled>
+                        🎨 生成 HTML PPT（预览）
+                    </button>
+                    <button class="download-btn" id="downloadPptxBtn" onclick="downloadPPTX()" disabled>
+                        📥 下载 PPTX 文件
+                    </button>
+                </div>
+
+                <div class="download-info">
+                    <strong>💡 PPTX 文件说明</strong>
+                    下载的 .pptx 文件可用 PowerPoint、WPS 或其他 Office 软件直接打开编辑！
+                </div>
+            </div>
+
+            <div class="history-section" id="historySection">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <label style="margin: 0;">📚 我的生成历史</label>
+                    <button class="secondary" onclick="clearHistory()">🗑️ 清除历史</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <p style="color: #888; text-align: center; padding: 20px;">暂无历史记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PPT 预览模态框 -->
+    <div class="modal" id="pptModal">
+        <div class="modal-header">
+            <h3>🎬 PPT 预览</h3>
+            <div style="display: flex; gap: 10px;">
+                <button class="secondary" onclick="downloadHTML()" style="padding: 8px 16px;">💾 下载 HTML</button>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+        </div>
+        <div class="modal-body">
+            <iframe id="pptFrame"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('pptForm');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const submitBtn = document.getElementById('submitBtn');
+        const generatePptBtn = document.getElementById('generatePptBtn');
+        const downloadPptxBtn = document.getElementById('downloadPptxBtn');
+        const resultContent = document.getElementById('resultContent');
+        const modelSelect = document.getElementById('modelSelect');
+        const currentModel = document.getElementById('currentModel');
+        const generating = document.getElementById('generating');
+        const generatingStatus = document.getElementById('generatingStatus');
+
+        let currentContent = '';
+        let currentTopic = '';
+        let selectedTheme = '森林墨';
+        let currentHtml = '';
+        let currentBlobUrl = null;
+        let configuredModels = {};
+
+        // 加载保存的主题设置
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('slidecraft-theme') || 'tech';
+            applyTheme(savedTheme);
+        }
+
+        // 应用主题
+        function applyTheme(theme) {
+            document.body.className = theme === 'tech' ? '' : 'theme-' + theme;
+            localStorage.setItem('slidecraft-theme', theme);
+            
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+        }
+
+        // 主题切换
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                applyTheme(btn.dataset.theme);
+            });
+        });
+
+        // 初始化主题
+        loadTheme();
+
+        // 加载模型列表
+        async function loadModels() {
+            try {
+                const resp = await fetch('/api/models');
+                const data = await resp.json();
+                
+                configuredModels = data.models || {};
+                const modelSelect = document.getElementById('modelSelect');
+                const modelStatus = document.getElementById('modelStatus');
+                const apiConfigInfo = document.getElementById('apiConfigInfo');
+                
+                modelSelect.innerHTML = '';
+                
+                if (Object.keys(configuredModels).length > 0) {
+                    // 有已配置的模型
+                    for (const [modelId, modelName] of Object.entries(configuredModels)) {
+                        const option = document.createElement('option');
+                        option.value = modelId;
+                        option.textContent = modelName;
+                        modelSelect.appendChild(option);
+                    }
+                    modelStatus.textContent = `✅ 已配置 ${Object.keys(configuredModels).length} 个模型`;
+                    modelStatus.style.color = '#2d8a4e';
+                    apiConfigInfo.style.display = 'none';
+                } else {
+                    // 没有配置的模型，显示所有预设
+                    const allPresets = data.all_presets || {};
+                    for (const [modelId, config] of Object.entries(allPresets)) {
+                        const option = document.createElement('option');
+                        option.value = modelId;
+                        option.textContent = config.name + ' ❌未配置';
+                        option.disabled = true;
+                        modelSelect.appendChild(option);
+                    }
+                    modelStatus.textContent = '⚠️ 请先配置 API Key（见下方说明）';
+                    modelStatus.style.color = '#ff6b6b';
+                    apiConfigInfo.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('加载模型失败:', e);
+                document.getElementById('modelSelect').innerHTML = '<option value="">加载失败</option>';
+            }
+        }
+
+        // 主题选择
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                selectedTheme = opt.dataset.theme;
+            });
+        });
+
+        modelSelect.addEventListener('change', () => {
+            const selected = modelSelect.options[modelSelect.selectedIndex].text;
+            currentModel.textContent = selected.split('（')[0].split('（')[0].trim();
+        });
+
+        async function loadHistory() {
+            try {
+                const resp = await fetch('/api/history');
+                const data = await resp.json();
+                renderHistory(data.history || []);
+            } catch (e) { console.error('加载历史失败:', e); }
+        }
+
+        function renderHistory(history) {
+            const list = document.getElementById('historyList');
+            if (!history || history.length === 0) {
+                list.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">暂无历史记录</p>';
+                return;
+            }
+            list.innerHTML = history.map((item, idx) => `
+                <div class="history-item" onclick="loadHistoryItem(${idx})">
+                    <div class="topic">${item.topic}</div>
+                    <div class="meta">${item.slides}页 · ${item.style} · ${item.model === 'minimax-m27' ? 'MiniMax' : 'DeepSeek'}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadHistoryItem(idx) {
+            fetch('/api/history')
+                .then(r => r.json())
+                .then(data => {
+                    const item = data.history[idx];
+                    if (item) {
+                        currentContent = item.content;
+                        currentTopic = item.topic;
+                        resultContent.textContent = item.content;
+                        result.classList.add('show');
+                        generating.style.display = 'none';
+                        generatePptBtn.disabled = false;
+                        downloadPptxBtn.disabled = false;
+                        document.getElementById('topic').value = item.topic;
+                        document.getElementById('slides').value = item.slides;
+                        document.getElementById('style').value = item.style;
+                        document.getElementById('modelSelect').value = item.model;
+                        currentModel.textContent = item.model === 'minimax-m27' ? 'MiniMax M27' : 'DeepSeek V4 Flash';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+        }
+
+        async function clearHistory() {
+            if (!confirm('确定要清除所有历史记录吗？')) return;
+            try {
+                await fetch('/api/clear_history', { method: 'POST' });
+                renderHistory([]);
+                result.classList.remove('show');
+                currentContent = '';
+            } catch (e) { console.error('清除历史失败:', e); }
+        }
+
+        function startNew() {
+            result.classList.remove('show');
+            generating.style.display = 'none';
+            currentContent = '';
+            currentTopic = '';
+            currentHtml = '';
+            generatePptBtn.disabled = true;
+            downloadPptxBtn.disabled = true;
+            form.reset();
+            document.getElementById('topic').focus();
+        }
+
+        function cancelGenerate() {
+            generating.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const topic = document.getElementById('topic').value.trim();
+            const requirements = document.getElementById('requirements').value.trim();
+            const userContent = document.getElementById('userContent').value.trim();
+            const slides = document.getElementById('slides').value;
+            const style = document.getElementById('style').value;
+            const model = modelSelect.value;
+
+            if (!topic) { showError('请输入 PPT 主题'); return; }
+
+            result.classList.remove('show');
+            error.classList.remove('show');
+            generating.style.display = 'block';
+            generatingText.textContent = '';
+            document.getElementById('generatingStats').textContent = '已生成 0 字';
+            generatingStatus.textContent = '🤖 AI 正在生成大纲中...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, requirements, userContent, slides, style, model })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '生成失败');
+
+                currentContent = data.content;
+                currentTopic = topic;
+                resultContent.textContent = data.content;
+                generating.style.display = 'none';
+                result.classList.add('show');
+                generatePptBtn.disabled = false;
+                downloadPptxBtn.disabled = false;
+                loadHistory();
+
+            } catch (err) {
+                showError(err.message);
+                generating.style.display = 'none';
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 生成 HTML PPT
+        async function generatePPT() {
+            if (!currentContent) { showError('请先生成 PPT 大纲'); return; }
+
+            generating.style.display = 'block';
+            generatingStatus.textContent = '🎨 正在生成 HTML PPT...';
+            document.getElementById('generatingStats').textContent = '解析中...';
+            generatePptBtn.disabled = true;
+            downloadPptxBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/generate_ppt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: currentTopic, content: currentContent, theme: selectedTheme })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '生成失败');
+
+                currentHtml = data.html;
+                
+                // 修复HTML预览问题：使用Blob URL代替srcdoc
+                if (currentBlobUrl) {
+                    URL.revokeObjectURL(currentBlobUrl);
+                }
+                const blob = new Blob([data.html], { type: 'text/html' });
+                currentBlobUrl = URL.createObjectURL(blob);
+                document.getElementById('pptFrame').src = currentBlobUrl;
+                document.getElementById('pptModal').classList.add('show');
+                generating.style.display = 'none';
+
+            } catch (err) {
+                showError(err.message);
+                generating.style.display = 'none';
+            } finally {
+                generatePptBtn.disabled = false;
+                downloadPptxBtn.disabled = false;
+            }
+        }
+
+        // 下载 PPTX 文件
+        async function downloadPPTX() {
+            if (!currentContent) { showError('请先生成 PPT 大纲'); return; }
+
+            generating.style.display = 'block';
+            generatingStatus.textContent = '📥 正在生成 PPTX 文件...';
+            document.getElementById('generatingStats').textContent = '请稍候...';
+            generatePptBtn.disabled = true;
+            downloadPptxBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/download_pptx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: currentTopic, content: currentContent, theme: selectedTheme })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || '下载失败');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (currentTopic || 'PPT') + '.pptx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                generating.style.display = 'none';
+                generatingStatus.textContent = '✅ 下载成功！';
+
+            } catch (err) {
+                showError(err.message);
+                generating.style.display = 'none';
+            } finally {
+                generatePptBtn.disabled = false;
+                downloadPptxBtn.disabled = false;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('pptModal').classList.remove('show');
+        }
+
+        function downloadHTML() {
+            if (!currentHtml) return;
+            const blob = new Blob([currentHtml], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (currentTopic || 'PPT') + '.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showError(msg) {
+            error.textContent = '❌ ' + msg;
+            error.classList.add('show');
+        }
+
+        function copyResult() {
+            navigator.clipboard.writeText(resultContent.textContent).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ 已复制！';
+                setTimeout(() => btn.textContent = '📋 复制大纲', 2000);
+            });
+        }
+
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+        loadModels();
+        loadHistory();
+    </script>
+</body>
+</html>

@@ -6,11 +6,16 @@ SlideCraft - AI PPT 生成服务
 
 使用前请在 .env 文件或环境变量中配置 API
 """
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, request, jsonify, session, Response, make_response
 from flask_session import Session
 import requests
 import secrets
-import os
 import json
 import zipfile
 import io
@@ -834,12 +839,14 @@ def api_clear_history():
 
 @app.route("/api/models")
 def api_models():
-    """返回可用的模型列表"""
+    """返回已配置的模型列表"""
     available = get_available_models()
+    default_model = os.getenv("SLIDECRAFT_DEFAULT_MODEL", "minimax-m27")
+    
     return jsonify({
-        "models": available if available else PRESET_MODELS,
-        "configured": available,
-        "all_presets": PRESET_MODELS
+        "models": available,
+        "default": default_model if default_model in available else (list(available.keys())[0] if available else None),
+        "configured_count": len(available)
     })
 
 @app.route("/api/themes")

@@ -458,35 +458,32 @@
                 const resp = await fetch('/api/models');
                 const data = await resp.json();
                 
-                configuredModels = data.models || {};
                 const modelSelect = document.getElementById('modelSelect');
                 const modelStatus = document.getElementById('modelStatus');
                 const apiConfigInfo = document.getElementById('apiConfigInfo');
                 
                 modelSelect.innerHTML = '';
                 
-                if (Object.keys(configuredModels).length > 0) {
-                    // 有已配置的模型
-                    for (const [modelId, modelName] of Object.entries(configuredModels)) {
+                const models = data.models || {};
+                const defaultModel = data.default || '';
+                
+                if (Object.keys(models).length > 0) {
+                    // 只显示已配置的模型
+                    for (const [modelId, modelName] of Object.entries(models)) {
                         const option = document.createElement('option');
                         option.value = modelId;
                         option.textContent = modelName;
+                        if (modelId === defaultModel) option.selected = true;
                         modelSelect.appendChild(option);
                     }
-                    modelStatus.textContent = `✅ 已配置 ${Object.keys(configuredModels).length} 个模型`;
+                    modelStatus.textContent = `✅ 已配置 ${Object.keys(models).length} 个模型`;
                     modelStatus.style.color = '#2d8a4e';
                     apiConfigInfo.style.display = 'none';
+                    
+                    // 更新当前模型显示
+                    currentModel.textContent = models[defaultModel] || Object.values(models)[0];
                 } else {
-                    // 没有配置的模型，显示所有预设
-                    const allPresets = data.all_presets || {};
-                    for (const [modelId, config] of Object.entries(allPresets)) {
-                        const option = document.createElement('option');
-                        option.value = modelId;
-                        option.textContent = config.name + ' ❌未配置';
-                        option.disabled = true;
-                        modelSelect.appendChild(option);
-                    }
-                    modelStatus.textContent = '⚠️ 请先配置 API Key（见下方说明）';
+                    modelStatus.textContent = '⚠️ 未配置任何 API Key，请设置 .env 文件';
                     modelStatus.style.color = '#ff6b6b';
                     apiConfigInfo.style.display = 'block';
                 }

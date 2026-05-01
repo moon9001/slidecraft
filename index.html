@@ -505,7 +505,7 @@
 
         modelSelect.addEventListener('change', () => {
             const selected = modelSelect.options[modelSelect.selectedIndex].text;
-            currentModel.textContent = selected.split('（')[0].split('（')[0].trim();
+            currentModel.textContent = selected.split('（')[0].trim();
         });
 
         async function loadHistory() {

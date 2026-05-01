@@ -1,67 +1,40 @@
-# SlideCraft - AI PPT Generator
+# SlideCraft —— AI PPT 生成器
 
-<div align="center">
+> 支持多种 AI 模型，一键生成专业 PPT 大纲、HTML 预览与 PPTX 下载
 
-![Logo](https://img.shields.io/badge/SlideCraft-AI%20PPT-667eea?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.8+-4BA?logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-2.0+-333?logo=flask&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+## ✨ 功能特性
 
-**智能生成 PPT 大纲 | 支持多种 AI 模型 | 可下载可编辑 PPTX**
+- **多模型支持** —— MiniMax M27、DeepSeek V3/V4/R1 等，可扩展
+- **三步生成** —— 输入主题 → AI 生成大纲 → 一键下载 PPTX / HTML
+- **科技云 API 开箱即用** —— 内置科技云（uni-api.cstcloud.cn）配置
+- **丰富主题** —— 森林墨 / 墨水经典 / 靛蓝瓷，可扩展
+- **历史记录** —— 浏览器会话内保留最近 10 份大纲
 
-[English](README_EN.md) | [中文](README.md)
+## 本地部署
 
-</div>
-
----
-
-## 功能特点
-
-- 🤖 **多 AI 模型支持** - OpenAI、DeepSeek、阿里千问、腾讯混元、字节豆包、智谱、百度文心、MiniMax
-- 🎨 **多种主题风格** - 森林墨、墨水经典、靛蓝瓷等多种配色方案
-- 🌈 **多套 UI 皮肤** - 科技风、植物所风、学术风自由切换，记住你的选择
-- 📥 **可编辑 PPTX** - 一键下载标准 PPTX 文件，可用 PowerPoint/WPS 打开编辑
-- 🌐 **HTML PPT 预览** - 即时预览效果，支持翻页动画
-- 💾 **历史记录** - 自动保存生成历史，方便回顾和修改
-
-## 快速开始
-
-### 1. 克隆项目
+### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/yourusername/slidecraft.git
+git clone https://github.com/moon9001/slidecraft.git
 cd slidecraft
 ```
 
-### 2. 配置 API Key
+### 2. 安装依赖
 
 ```bash
-# 复制配置示例文件
+pip install flask flask-session python-dotenv requests
+```
+
+### 3. 配置 API Key（可选）
+
+复制 `.env` 并填入你的 API Key：
+
+```bash
 cp .env.example .env
-
-# 编辑 .env 文件，填入你的 API Key
+# 编辑 .env，填入 API Key
 ```
 
-支持的模型和对应的环境变量：
-
-| 模型 | 环境变量 | 获取地址 |
-|------|----------|----------|
-| OpenAI GPT-4o | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com/api-keys) |
-| DeepSeek | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com/) |
-| 阿里千问 | `DASHSCOPE_API_KEY` | [bailian.console.aliyun.com](https://bailian.console.aliyun.com/) |
-| 腾讯混元 | `TENCENT_SECRET_ID` | [console.cloud.tencent.com](https://console.cloud.tencent.com/hunyuan) |
-| 字节豆包 | `ARK_API_KEY` | [console.volcengine.com](https://console.volcengine.com/ark) |
-| 智谱 GLM | `ZHIPU_API_KEY` | [open.bigmodel.cn](https://open.bigmodel.cn/) |
-| 百度文心 | `ERNIE_API_KEY` | [console.bce.baidu.com](https://console.bce.baidu.com/) |
-| MiniMax | `MINIMAX_API_KEY` | 科技云 |
-
-> 💡 **提示**: 只需要配置你想要使用的模型的 API Key，不需要全部配置。
-
-### 3. 安装依赖
-
-```bash
-pip install flask flask-session requests
-```
+> 默认已预配置科技云 API Key，可直接使用
 
 ### 4. 启动服务
 
@@ -69,123 +42,54 @@ pip install flask flask-session requests
 python server.py
 ```
 
-打开浏览器访问 http://localhost:5000
+浏览器访问 **http://localhost:5000**
 
----
+## 环境变量说明
 
-## Docker 部署
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `MINIMAX_API_KEY` | MiniMax API Key | 已预配置科技云 Key |
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | 已预配置科技云 Key |
+| `SLIDECRAFT_DEFAULT_MODEL` | 默认模型 | `minimax-m27` |
+| `SLIDECRAFT_API_URL` | API 地址 | `https://uni-api.cstcloud.cn/v1/chat/completions` |
 
-```bash
-# 构建镜像时传入 API Key
-docker build -t slidecraft --build-arg OPENAI_API_KEY=sk-xxx .
-
-# 或使用环境变量
-docker run -d -p 5000:5000 \
-  -e OPENAI_API_KEY=sk-xxx \
-  slidecraft
-```
-
-## Nginx 反向代理（可选）
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name your-domain.com;
-    
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-    
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-## 项目结构
+## 目录结构
 
 ```
 slidecraft/
 ├── server.py          # Flask 后端服务
 ├── index.html         # 前端页面
-├── session_data/      # Session 存储（自动创建）
-├── .env.example       # 环境变量配置示例
-├── .gitignore         # Git 忽略文件
-├── LICENSE            # MIT 许可证
-└── README.md          # 项目说明
+├── .env              # 环境变量配置（不提交到 Git）
+├── requirements.txt   # Python 依赖
+└── session_data/     # 会话数据（自动创建）
 ```
 
-## 开源协议
+## 支持的模型
 
-本项目采用 [MIT License](LICENSE) 开源。
+| 模型 ID | 名称 | 需要 API Key |
+|----------|------|-------------|
+| `minimax-m27` | MiniMax M27（默认） | `MINIMAX_API_KEY` |
+| `deepseek-v4-flash` | DeepSeek V4 Flash（快速） | `DEEPSEEK_API_KEY` |
+| `deepseek-chat` | DeepSeek V3（平衡） | `DEEPSEEK_API_KEY` |
+| `deepseek-reasoner` | DeepSeek R1（推理） | `DEEPSEEK_API_KEY` |
 
-### 你可以
-- ✅ 自由使用、修改、分发本项目
-- ✅ 用于商业项目
-- ✅ 私有化部署
+> 在 `.env` 中填入对应 Key 后，模型将自动出现在下拉列表中
 
-### 你需要
-- 📝 保留原始版权声明
+## 技术栈
 
-## 第三方引用与致谢
+- 后端：`Flask` + `requests`
+- 前端：原生 HTML / CSS / JavaScript
+- PPTX 生成：纯 Python XML（无需安装 Microsoft Office）
+- AI 模型：OpenAI 兼容接口
 
-本项目引用了以下开源项目，感谢他们的贡献：
+## 许可证
 
-| 项目 | 用途 | 许可证 |
-|------|------|--------|
-| [Flask](https://github.com/pallets/flask) | Web 框架 | BSD-3-Clause |
+MIT License
 
-> **关于 guizang-ppt**: 本项目的 HTML PPT 预览功能参考了其翻页动画设计理念。如需商用 guizang-ppt，请查阅其具体许可证条款。
+## 联系
 
-## 常见问题
-
-### Q: 如何添加新的 AI 模型？
-
-A: 在 `server.py` 的 `PRESET_MODELS` 字典中添加即可：
-```python
-"my-model": {
-    "name": "我的模型",
-    "api_url": "https://api.example.com/v1/chat/completions",
-    "api_key_env": "MY_MODEL_API_KEY",
-    "supports_streaming": True
-}
-```
-
-### Q: 如何修改 UI 配色？
-
-A: 修改 `index.html` 中的 CSS 变量，或添加新的主题类。
-
-### Q: 支持流式输出吗？
-
-A: 当前版本暂不支持流式输出，API 返回后统一展示。
-
-## 更新日志
-
-### v3.0.0
-- ✨ 支持多种 AI 模型（OpenAI、DeepSeek、阿里、腾讯、豆包、智谱、百度等）
-- 🔒 移除硬编码 API Key，改为环境变量配置
-- 🎨 UI 风格可切换并自动保存
-
-### v2.0.0
-- ✨ 全新 UI 设计，支持多风格切换
-
-### v1.0.0
-- 🚀 初始版本
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 联系方式
-
-- **邮箱**: 441462071@qq.com
-- **问题反馈**: [GitHub Issues](https://github.com/yourusername/slidecraft/issues)
+技术问题请联系：**wangpeng@mail.kib.ac.cn**
 
 ---
 
-<div align="center">
-
-Made with ❤️ by SlideCraft Team
-
-</div>
+> 本服务由 **WorkBuddy AI** 辅助开发 🙌

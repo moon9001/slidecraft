@@ -1,33 +1,34 @@
-# Environment variables (API keys)
+# 环境配置
 .env
-.env.local
-.env.production
+.env.example
 
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
+env/
 venv/
-ENV/
 
-# Session data
+# 会话数据
 session_data/
+
+# 日志
+*.log
+
+# 测试文件
+test_*.py
+test_*.pptx
+gen_*.py
+create_repo.json
+
+# Python 生成文件
+植物多样性PPT*.html
+植物多样性PPT*.pptx
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-*.bak

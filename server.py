@@ -714,7 +714,9 @@ def index():
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
-    data = request.get_json()
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "请求格式错误，需要 JSON  body"}), 400
     topic = data.get("topic", "").strip()
     requirements = data.get("requirements", "").strip()
     user_content = data.get("user_content", "").strip()
@@ -795,7 +797,9 @@ def api_generate():
 @app.route("/api/generate_ppt", methods=["POST"])
 def api_generate_ppt():
     """生成 HTML PPT"""
-    data = request.get_json()
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "请求格式错误，需要 JSON body"}), 400
     topic = data.get("topic", "").strip()
     content = data.get("content", "").strip()
     theme = data.get("theme", "森林墨")
@@ -811,7 +815,10 @@ def api_generate_ppt():
 @app.route("/api/download_pptx", methods=["POST"])
 def api_download_pptx():
     """下载 PPTX 文件"""
-    data = request.get_json()
+    from urllib.parse import quote
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "请求格式错误，需要 JSON body"}), 400
     topic = data.get("topic", "").strip()
     content = data.get("content", "").strip()
     theme = data.get("theme", "森林墨")
@@ -822,9 +829,11 @@ def api_download_pptx():
     pages = parse_ppt_pages(content)
     pptx_data = create_pptx_xml(topic or "PPT", pages, theme)
 
+    # 使用安全的文件名编码（支持中文）
+    safe_filename = quote(topic or "PPT", safe='')
     response = make_response(pptx_data)
     response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-    response.headers['Content-Disposition'] = f'attachment; filename={topic or "PPT"}.pptx'
+    response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_filename}.pptx"
 
     return response
 

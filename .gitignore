@@ -45,6 +45,8 @@ generate_*.json
 # 本地生成文件
 *.pptx
 temp_*.pptx
+ppt_generator.js
+pptxgen_wrapper.js
 
 # IDE
 .vscode/

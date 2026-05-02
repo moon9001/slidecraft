@@ -502,6 +502,12 @@
             currentModel.textContent = selected.split('（')[0].trim();
         });
 
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         async function loadHistory() {
             try {
                 const resp = await fetch('/api/history');
@@ -518,8 +524,8 @@
             }
             list.innerHTML = history.map((item, idx) => `
                 <div class="history-item" onclick="loadHistoryItem(${idx})">
-                    <div class="topic">${item.topic}</div>
-                    <div class="meta">${item.slides}页 · ${item.style} · ${item.model === 'minimax-m27' ? 'MiniMax' : 'DeepSeek'}</div>
+                    <div class="topic">${escapeHtml(item.topic)}</div>
+                    <div class="meta">${item.slides}页 · ${escapeHtml(item.style)} · ${item.model === 'minimax-m27' ? 'MiniMax' : 'DeepSeek'}</div>
                 </div>
             `).join('');
         }

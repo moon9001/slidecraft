@@ -237,55 +237,88 @@ function cleanContent(s) {
   return s.trim();
 }
 
+function cleanMarkdown(s) {
+  // 去除 Markdown 标题标记 ### 
+  s = s.replace(/^#{1,6}\s+/, '');
+  // 去除分隔线 ---
+  s = s.replace(/^-{3,}\s*$/gm, '');
+  // 去除 Markdown 粗体 **xxx** -> xxx
+  s = s.replace(/\*\*(.+?)\*\*/g, '$1');
+  // 去除 Markdown 斜体 *xxx* -> xxx
+  s = s.replace(/\*(.+?)\*/g, '$1');
+  // 去除行首的星号列表标记
+  s = s.replace(/^[\*\-?]\s+/, '');
+  // 去除末尾的【】符号
+  s = s.replace(/[\u3010\u3011]+$/, '');
+  return s.trim();
+}
+
 function parseContent(content) {
   const pages = [];
   const OPEN = '\u3010';
   const CLOSE = '\u3011';
 
+  // 先尝试用 【】 格式分割
   const parts = content.split(OPEN);
 
-  for (let i = 1; i < parts.length; i++) {
-    const part = OPEN + parts[i];
-    const closeIdx = part.indexOf(CLOSE);
-    if (closeIdx === -1) continue;
+  if (parts.length > 1) {
+    // 标准格式解析
+    for (let i = 1; i < parts.length; i++) {
+      const part = OPEN + parts[i];
+      const closeIdx = part.indexOf(CLOSE);
+      if (closeIdx === -1) continue;
 
-    const header = part.slice(0, closeIdx + 1);
-    const rest = part.slice(closeIdx + 1);
+      const header = part.slice(0, closeIdx + 1);
+      const rest = part.slice(closeIdx + 1);
 
-    const typeMatch = header.match(/\u7b2c(\d+)\u9875[：:]?([^\u3011]*)/);
-    if (!typeMatch) continue;
+      // 清理 header 中的 Markdown 格式后再匹配
+      const cleanHeader = cleanMarkdown(header);
+      const typeMatch = cleanHeader.match(/第(\d+)页[：:]?\s*(.+)/);
+      if (!typeMatch) continue;
 
-    const pageType = typeMatch[2].trim().toLowerCase();
-    const page = { type: 'content', title: '', subtitle: '', bullets: [], items: [] };
+      const pageTypeRaw = typeMatch[2].toLowerCase().trim();
+      const page = { type: 'content', title: '', subtitle: '', bullets: [], items: [] };
 
-    if (pageType.includes('\u5c01\u9762') || pageType.includes('cover')) {
-      page.type = 'cover';
-    } else if (pageType.includes('\u76ee\u5f55') || pageType.includes('toc')) {
-      page.type = 'toc';
-    } else if (pageType.includes('\u7ed3\u675f') || pageType.includes('\u8c22\u8c22') || pageType.includes('summary')) {
-      page.type = 'summary';
+      if (pageTypeRaw.includes('封面') || pageTypeRaw.includes('cover')) {
+        page.type = 'cover';
+      } else if (pageTypeRaw.includes('目录') || pageTypeRaw.includes('toc')) {
+        page.type = 'toc';
+      } else if (pageTypeRaw.includes('结束') || pageTypeRaw.includes('谢谢') || pageTypeRaw.includes('summary') || pageTypeRaw.includes('end')) {
+        page.type = 'summary';
+      } else {
+        // 内容页：标题就是章节名称
+        page.title = typeMatch[2].trim();
+      }
+
+      // 解析各字段（清理 Markdown 格式）
+      const cleanRest = cleanMarkdown(rest);
+
+      const titleM = cleanRest.match(/\u6807\u9898[：:]\s*([^\n]+)/);
+      if (titleM) page.title = titleM[1].trim();
+
+      const subM = cleanRest.match(/\u526f\u6807\u9898[：:]\s*([^\n]+)/);
+      if (subM) page.subtitle = subM[1].trim();
+
+      // 要点解析（支持 要点：xxx 或 - xxx）
+      const bulletLines = cleanRest.split('\n');
+      for (const line of bulletLines) {
+        const cl = cleanMarkdown(line).trim();
+        if (/^\u8981\u70b9[：:：]?\s*(.+)/.test(cl)) {
+          const pt = cl.replace(/^\u8981\u70b9[：:：]?\s*/, '').trim();
+          if (pt && pt.length > 2) page.bullets.push(pt);
+        } else if (/^\d+[.、：:]\s*(.+)/.test(cl) && page.type === 'toc') {
+          const it = cl.replace(/^\d+[.、：:]\s*/, '').trim();
+          if (it && it.length > 2) page.items.push(it);
+        }
+      }
+
+      pages.push(page);
     }
-
-    const titleM = rest.match(/\u6807\u9898[：:]\s*([^\u3010\u3011\n]+)/);
-    if (titleM) page.title = titleM[1].trim();
-
-    const subM = rest.match(/\u526f\u6807\u9898[：:]\s*([^\u3010\u3011\n]+)/);
-    if (subM) page.subtitle = subM[1].trim();
-
-    const bulletMs = rest.match(/\u8981\u70b9[：:]\s*([^\u3010\u3011\n]+)/g);
-    if (bulletMs) page.bullets = bulletMs.map(b => b.replace(/\u8981\u70b9[：:]\s*/, '').trim());
-
-    const itemMs = rest.match(/(\d+)[\.、：:]\s*([^\u3010\u3011\n]+)/g);
-    if (itemMs) page.items = itemMs.map(x => {
-      const m = x.match(/(\d+)[\.、：:]\s*([^\u3010\u3011\n]+)/);
-      return m ? m[2].trim() : x.trim();
-    });
-
-    pages.push(page);
   }
 
   if (pages.length === 0) return parseFallback(content);
 
+  // 如果最后一页不是结束页，添加结束页
   if (pages.length > 0 && pages[pages.length - 1].type !== 'summary') {
     pages.push({ type: 'summary', title: '\u8c22\u8c22', subtitle: '', bullets: [], items: [] });
   }
@@ -294,16 +327,74 @@ function parseContent(content) {
 
 function parseFallback(content) {
   const pages = [];
-  const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
-  let title = '演示文稿';
-  for (const l of lines) { const m = l.match(/^\*([^*]+)\*$/); if (m) { title = m[1].trim(); break; } }
-  const bullets = lines.filter(l => /^[-?\*]\s/.test(l)).map(l => l.replace(/^[-?\*]\s*/, '').trim());
-  if (bullets.length > 0) {
-    pages.push({ type: 'content', title, subtitle: '', bullets, items: [] });
-  } else if (lines.length > 0) {
-    pages.push({ type: 'content', title: lines[0], subtitle: '', bullets: lines.slice(1), items: [] });
+  const lines = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#') && !l.startsWith('---'));
+  
+  // 查找第一个页面标题
+  let coverTitle = '演示文稿';
+  let inCover = false;
+  let currentPage = null;
+
+  for (const rawLine of content.split('\n')) {
+    const line = cleanMarkdown(rawLine.trim());
+    if (!line) continue;
+
+    // 检测页面标题
+    const pageMatch = line.match(/^[\u3010【]?第?\s*(\d+)\s*页[：:\s]+(.+)/);
+    if (pageMatch) {
+      const pageTypeRaw = pageMatch[2].toLowerCase();
+      if (pageTypeRaw.includes('封面') || pageTypeRaw.includes('cover')) {
+        currentPage = { type: 'cover', title: '', subtitle: '', bullets: [], items: [] };
+        inCover = true;
+      } else if (pageTypeRaw.includes('目录') || pageTypeRaw.includes('toc')) {
+        if (currentPage) pages.push(currentPage);
+        currentPage = { type: 'toc', title: '目录', subtitle: '', bullets: [], items: [] };
+        inCover = false;
+      } else if (pageTypeRaw.includes('结束') || pageTypeRaw.includes('谢谢') || pageTypeRaw.includes('end')) {
+        if (currentPage) pages.push(currentPage);
+        currentPage = { type: 'summary', title: '谢谢', subtitle: '', bullets: [], items: [] };
+        inCover = false;
+      } else {
+        if (currentPage) pages.push(currentPage);
+        currentPage = { type: 'content', title: pageMatch[2], subtitle: '', bullets: [], items: [] };
+        inCover = false;
+      }
+      continue;
+    }
+
+    if (!currentPage) continue;
+
+    // 解析内容行
+    if (currentPage.type === 'cover') {
+      if (line.includes('标题') && line.includes('：')) {
+        currentPage.title = line.split(/[：:]/)[1]?.trim() || currentPage.title;
+      } else if (line.includes('副标题') && line.includes('：')) {
+        currentPage.subtitle = line.split(/[：:]/)[1]?.trim() || currentPage.subtitle;
+      }
+    } else if (currentPage.type === 'toc') {
+      const itemMatch = line.match(/^\d+[.、：:]\s*(.+)/);
+      if (itemMatch) currentPage.items.push(itemMatch[1].trim());
+    } else {
+      if (line.includes('要点') && line.includes('：')) {
+        const pt = line.split(/[：:]/).slice(1).join('：').trim();
+        if (pt) currentPage.bullets.push(pt);
+      } else if (/^[-*]\s+/.test(line)) {
+        const pt = line.replace(/^[-*]\s+/, '').trim();
+        if (pt) currentPage.bullets.push(pt);
+      }
+    }
   }
-  pages.push({ type: 'summary', title: '谢谢', subtitle: '', bullets: [], items: [] });
+
+  if (currentPage) pages.push(currentPage);
+
+  if (pages.length === 0) {
+    pages.push({ type: 'content', title: '演示文稿', subtitle: '', bullets: lines.slice(0, 5), items: [] });
+  }
+
+  // 确保有结束页
+  if (pages.length > 0 && pages[pages.length - 1].type !== 'summary') {
+    pages.push({ type: 'summary', title: '谢谢', subtitle: '', bullets: [], items: [] });
+  }
+
   return pages;
 }
 

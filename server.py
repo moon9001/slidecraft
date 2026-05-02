@@ -502,7 +502,7 @@ def generate_ppt_html(title, pages, theme="森林墨"):
     return html
 
 def parse_ppt_pages(content):
-    """解析 AI 生成的内容为页面结构 - 逐行可靠版"""
+    """解析 AI 生成的内容为页面结构 - 支持 Markdown 格式"""
     import re
     pages = []
     lines = [l.strip() for l in content.splitlines() if l.strip()]
@@ -512,16 +512,20 @@ def parse_ppt_pages(content):
 
     def clean(s):
         """清理文本：去除空白、Markdown格式符号、页码标记等"""
-        s = s.strip().rstrip("】】")
+        s = s.strip()
+        # 去除 Markdown 标题标记 ### 
+        s = re.sub(r'^#{1,6}\s+', '', s)
+        s = re.sub(r'^-{3,}\s*$', '', s)  # 去除分隔线 ---
         # 去除 Markdown 格式符号 ** 和 __
-        import re
         s = re.sub(r'\*\*(.+?)\*\*', r'\1', s)
         s = re.sub(r'__(.+?)__', r'\1', s)
-        # 去除行首的 **标题：** 等标记中的 **
-        s = re.sub(r'\*\*?(标题|副标题|要点|摘要|说明)\*\*?：?', r'\1：', s)
         # 去除行首的星号列表标记
         s = re.sub(r'^[\*\-•]\s+', '', s)
-        return s
+        # 去除末尾的【】符号
+        s = re.sub(r'[\u3010\u3011]+$', '', s)
+        # 合并重复的"第"字（如"第第4页" -> "第4页"）
+        s = re.sub(r'第+', '第', s)
+        return s.strip()
 
     def save_page():
         nonlocal current_page, collecting
@@ -540,82 +544,132 @@ def parse_ppt_pages(content):
                 pages.append(current_page)
             current_page = None
 
+    def detect_page(line, raw_line):
+        """检测行是否为页面标题，返回(page_num, page_title)"""
+        clean_line = clean(raw_line)
+        # 检测页码格式 【第X页：标题】 或 第X页：标题 或 ##【第X页：标题】
+        patterns = [
+            r'#{1,6}\s*【?第?\s*(\d+)\s*页[：:\s]+(.+)',  # ### 第1页：xxx 或 ###【第1页：xxx】
+            r'【?第?\s*(\d+)\s*页[：:\s]+(.+)',  # 第1页：xxx 或 【第1页：xxx】
+        ]
+        for pattern in patterns:
+            m = re.match(pattern, clean_line)
+            if m:
+                return (m.group(1), m.group(2).strip())
+        return (None, None)
+
     i = 0
     while i < len(lines):
-        line = lines[i]
+        raw_line = lines[i]
+        line = raw_line.strip()
         low = line.lower()
 
-        # 检测【第X页：标题】
-        m = re.match(r'^【?第?\s*(\d+)\s*页[：:\s]+(.*)', line)
-        if m:
-            save_page()
-            num = int(m.group(1))
-            sec = clean(m.group(2))
-            sec_low = sec.lower()
-            if '封面' in sec_low or 'cover' in sec_low:
+        # 检测是否为页面标题
+        page_num, page_title = detect_page(line, raw_line)
+        if page_title:
+            clean_title = clean(page_title)
+            sec_low = clean_title.lower()
+            is_cover = '封面' in sec_low or 'cover' in sec_low
+            
+            # 如果当前是空的封面（只有前导文字），直接用它来填充
+            if current_page and current_page["type"] == "cover" and not current_page["title"] and not current_page["subtitle"] and len(current_page.get("points", [])) == 0:
+                # 空封面复用，继续填充内容
+                if is_cover:
+                    pass  # 继续使用当前封面
+                else:
+                    # 非封面页，需要先保存空封面
+                    pages.append(current_page)
+                    current_page = None
+            else:
+                save_page()
+            
+            if is_cover:
                 current_page = {"type": "cover", "title": "", "subtitle": "", "meta": ""}
             elif '目录' in sec_low or 'toc' in sec_low:
-                current_page = {"type": "toc", "items": []}
-            elif '结束' in sec_low or '谢谢' in sec_low or 'end' in sec_low:
-                current_page = {"type": "end", "title": clean(sec.replace('谢谢','').replace('结束','').strip()) or "谢谢"}
+                current_page = {"type": "toc", "title": "目录", "items": []}
+            elif '结束' in sec_low or '谢谢' in sec_low or 'end' in sec_low or '结束页' in sec_low:
+                current_page = {"type": "end", "title": "谢谢", "subtitle": "", "meta": ""}
             else:
-                current_page = {"type": "content", "title": sec, "points": []}
+                # 内容页：标题就是章节名称
+                current_page = {"type": "content", "title": clean_title, "points": []}
             current_type = current_page["type"] if current_page else None
             collecting = []
             i += 1
             continue
 
+        # 跳过无用的前导行（在没有当前页面时）
         if current_page is None:
-            current_page = {"type": "cover", "title": clean(line), "subtitle": "", "meta": ""}
+            clean_line = clean(line)
+            # 如果是"标题："或"副标题："开头的行，跳过（会在下一个页面处理）
+            if clean_line.startswith('#') or clean_line.startswith('---') or not clean_line:
+                i += 1
+                continue
+            # 跳过纯描述性文字
+            if len(clean_line) < 10 and not ('：' in clean_line):
+                i += 1
+                continue
+            # 否则作为封面页开始
+            current_page = {"type": "cover", "title": "", "subtitle": "", "meta": ""}
             current_type = "cover"
             collecting = []
             i += 1
             continue
 
+        # 处理当前页面的内容
+        cleaned_line = clean(line)
+        
         if current_type == "cover":
-            # 封面页的标题和副标题提取 - 注意顺序，先检查副标题
-            if line.startswith('副标题'):
-                parts = re.split(r'[：:]', line, 1)
+            # 封面页的标题和副标题提取
+            cl = cleaned_line.lower()
+            if '副标题' in cl:
+                parts = re.split(r'[：:]', cleaned_line, 1)
                 if len(parts) > 1:
-                    current_page["subtitle"] = clean(parts[1])
-            elif line.startswith('标题'):
-                parts = re.split(r'[：:]', line, 1)
+                    current_page["subtitle"] = parts[1].strip()
+            elif '标题' in cl:
+                parts = re.split(r'[：:]', cleaned_line, 1)
                 if len(parts) > 1:
-                    current_page["title"] = clean(parts[1])
+                    current_page["title"] = parts[1].strip()
         elif current_type == "toc" and current_page:
-            m2 = re.match(r'^\s*[一二三四五六七八九十\d]+[.、：:\s]\s*(.+)', line)
+            # 检测目录项：1. xxx 或 1 xxx
+            m2 = re.match(r'^\s*[一二三四五六七八九十\d]+[.、：:\s]\s*(.+)', cleaned_line)
             if m2:
-                it = clean(m2.group(1))
+                it = m2.group(1).strip()
                 if it and it not in current_page["items"]:
                     current_page["items"].append(it)
         elif current_type == "content" and current_page:
-            # 注意：content页的标题不需要特别处理，因为标题已经在页码行解析过了
-            if re.match(r'^(?:要点|摘要|说明)\s*[：:]\s*.+', line):
-                pt = clean(re.sub(r'^(?:要点|摘要|说明)\s*[：:]\s*', '', line))
+            # 检测要点
+            cl = cleaned_line.lower()
+            if '要点' in cl or '摘要' in cl or '说明' in cl:
+                # 要点：xxx 或 要点 - xxx
+                pt = re.sub(r'^(?:要点|摘要|说明)\s*[-：:：]?\s*', '', cleaned_line).strip()
                 if pt and len(pt) > 3:
                     if "points" not in current_page:
                         current_page["points"] = []
                     if pt not in current_page["points"]:
                         current_page["points"].append(pt)
-            elif re.match(r'^[•\-*]\s+.+', line):
-                pt = clean(line[1:].strip())
+            elif re.match(r'^[•\-*]\s+.+', cleaned_line):
+                pt = re.sub(r'^[\*\-•]\s+', '', cleaned_line).strip()
                 if pt and len(pt) > 3:
                     if "points" not in current_page:
                         current_page["points"] = []
                     if pt not in current_page["points"]:
                         current_page["points"].append(pt)
         elif current_type == "end" and current_page:
-            if '标题' in line:
-                parts = re.split(r'[：:]', line, 1)
+            if '标题' in cleaned_line:
+                parts = re.split(r'[：:]', cleaned_line, 1)
                 if len(parts) > 1:
-                    current_page["title"] = clean(parts[1]) or "谢谢"
+                    title = parts[1].strip()
+                    if title and title != '谢谢！':
+                        current_page["title"] = title
         i += 1
 
     save_page()
 
+    # 如果没有页面，创建一个默认封面
     if not pages:
         pages = [{"type": "cover", "title": "PPT", "subtitle": "", "meta": ""}]
-    if pages[0]["type"] != "cover":
+    # 确保第一页是封面
+    if pages and pages[0]["type"] != "cover":
         pages.insert(0, {"type": "cover", "title": "PPT", "subtitle": "", "meta": ""})
 
     for i, page in enumerate(pages):

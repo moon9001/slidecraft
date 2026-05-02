@@ -308,31 +308,35 @@ function parseContent(content) {
       const subM = cleanRest.match(/\u526f\u6807\u9898[：:]\s*([^\n]+)/);
       if (subM) page.subtitle = subM[1].trim();
 
-      // 要点解析（支持 要点：xxx、- xxx、* xxx、? xxx、数字列表）
+      // 要点解析：使用原始行检查列表标记（避免 cleanMarkdown 先删除标记）
       const bulletLines = rest.split('\n');
       for (const line of bulletLines) {
         const originalLine = line.trim();
         if (!originalLine) continue;
-        
-        const cl = cleanMarkdown(originalLine);
-        if (!cl) continue;
-        
-        // 无序列表：- xxx 或 * xxx 或 ? xxx（先检查原始行）
-        if (/^[\*\-?]\s*.+/.test(originalLine)) {
-          const pt = cl.replace(/^[\*\-?]\s*/, '').trim();
-          if (pt && pt.length > 1) page.bullets.push(pt);
-        // 要点：xxx 或 要点:xxx
-        } else if (/^要点[：:]\s*.+/.test(cl)) {
-          const pt = cl.replace(/^要点[：:]\s*/, '').trim();
-          if (pt && pt.length > 1) page.bullets.push(pt);
-        // 数字列表：1. xxx 或 1、xxx（目录项或要点）
-        } else if (/^\d+[.、]\s*.+/.test(cl)) {
-          const content = cl.replace(/^\d+[.、]\s*/, '').trim();
-          if (content && content.length > 1) {
+
+        // 跳过标题行（包含【】或标题：）
+        if (originalLine.includes('\u3010') || originalLine.includes('\u3011')) continue;
+        if (/^(标题|副标题)[：:]/.test(originalLine)) continue;
+
+        // 无序列表：- xxx 或 * xxx（检查原始行）
+        if (/^[\*\-]\s+.+/.test(originalLine)) {
+          const pt = originalLine.replace(/^[\*\-]\s+/, '').trim();
+          const cleanPt = cleanMarkdown(pt);
+          if (cleanPt && cleanPt.length > 1) page.bullets.push(cleanPt);
+        // 要点：xxx（检查清理后的行）
+        else if (/^要点[：:]\s*.+/.test(cleanMarkdown(originalLine))) {
+          const rawContent = originalLine.replace(/^要点[：:]\s*/, '').trim();
+          const cleanPt = cleanMarkdown(rawContent);
+          if (cleanPt && cleanPt.length > 1) page.bullets.push(cleanPt);
+        // 数字列表：1. xxx 或 1、xxx（检查原始行）
+        else if (/^\d+[.、]\s*.+/.test(originalLine)) {
+          const rawContent = originalLine.replace(/^\d+[.、]\s*/, '').trim();
+          const cleanPt = cleanMarkdown(rawContent);
+          if (cleanPt && cleanPt.length > 1) {
             if (page.type === 'toc') {
-              page.items.push(content);
+              page.items.push(cleanPt);
             } else {
-              page.bullets.push(content);
+              page.bullets.push(cleanPt);
             }
           }
         }

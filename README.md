@@ -40,20 +40,33 @@ cp .env.example .env
 
 #### 支持的服务商
 
-**DeepSeek（推荐）**
-- 官网：https://platform.deepseek.com/
-- API Key：https://platform.deepseek.com/api_keys
-- 环境变量：`DEEPSEEK_API_KEY`
-
-**MiniMax**
+**MiniMax（默认）**
 - 官网：https://www.minimaxi.com/
 - API Key：在控制台获取
 - 环境变量：`MINIMAX_API_KEY`
 
-**OpenAI**
-- 官网：https://platform.openai.com/
-- API Key：https://platform.openai.com/api-keys
-- 环境变量：`OPENAI_API_KEY`
+**DeepSeek**
+- 官网：https://platform.deepseek.com/
+- API Key：https://platform.deepseek.com/api_keys
+- 环境变量：`DEEPSEEK_API_KEY`
+
+**通义千问（阿里云）**
+- 官网：https://dashscope.console.aliyun.com/
+- API Key：在阿里云 DashScope 控制台获取
+- 环境变量：`DEEPSEEK_API_KEY`（使用阿里云兼容接口）
+
+**讯飞星火**
+- 官网：https://xinghuo.xfyun.cn/
+- API Key：在讯飞开放平台获取
+- 环境变量：`DEEPSEEK_API_KEY`（使用科技云统一接口）
+
+**S1-Base**
+- 官网：https://s1.cn/
+- 环境变量：`DEEPSEEK_API_KEY`（使用科技云统一接口）
+
+**GPT-OSS**
+- 官网：https://www.modelscope.cn/
+- 环境变量：`DEEPSEEK_API_KEY`（使用科技云统一接口）
 
 > 💡 **提示**：你可以使用任意 OpenAI 兼容的 API 服务（如本地 OAI模型），只需修改 `SLIDECRAFT_API_URL` 环境变量。
 
@@ -69,26 +82,22 @@ python server.py
 
 | 变量 | 说明 | 必填 | 示例 |
 |------|------|------|------|
-| `DEEPSEEK_API_KEY` | DeepSeek API Key | ✅ 是 | `sk-...` |
-| `MINIMAX_API_KEY` | MiniMax API Key | ❌ 否 | `your-key` |
-| `OPENAI_API_KEY` | OpenAI API Key | ❌ 否 | `sk-...` |
-| `SLIDECRAFT_DEFAULT_MODEL` | 默认模型 | ❌ 否 | `deepseek-chat` |
+| `MINIMAX_API_KEY` | MiniMax API Key | ✅ 是 | `your-key` |
+| `DEEPSEEK_API_KEY` | 统一 API Key（DeepSeek/阿里云/科技云等） | ✅ 是 | `sk-...` |
+| `SLIDECRAFT_DEFAULT_MODEL` | 默认模型 | ❌ 否 | `minimax-m27` |
 | `SLIDECRAFT_API_URL` | 自定义 API 地址 | ❌ 否 | `https://your-api.com/v1/chat/completions` |
 
 ### .env 示例
 
 ```bash
-# DeepSeek（必需）
-DEEPSEEK_API_KEY=sk-your-deepseek-key
-
-# MiniMax（可选）
+# MiniMax（默认，必需）
 MINIMAX_API_KEY=your-minimax-key
 
-# OpenAI（可选）
-OPENAI_API_KEY=sk-your-openai-key
+# 统一 API Key（DeepSeek/通义千问/讯飞星火/S1-Base 等）
+DEEPSEEK_API_KEY=your-unified-api-key
 
-# 默认模型（可选，默认为 deepseek-chat）
-SLIDECRAFT_DEFAULT_MODEL=deepseek-chat
+# 默认模型（可选，默认为 minimax-m27）
+SLIDECRAFT_DEFAULT_MODEL=minimax-m27
 
 # 自定义 API 地址（可选，用于 OpenAI 兼容的服务）
 # SLIDECRAFT_API_URL=https://api.openai.com/v1/chat/completions

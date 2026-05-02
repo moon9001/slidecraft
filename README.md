@@ -268,6 +268,34 @@ SLIDECRAFT_API_URL=http://localhost:11434/v1/chat/completions
 DEEPSEEK_API_KEY=不需要真实Key  # OAI 兼容模型不需要
 ```
 
+---
+
+## 🙏 致谢
+
+本项目站在巨人的肩膀上，感谢以下开源项目和技术支持：
+
+### 核心框架
+- [Flask](https://flask.palletsprojects.com/) - 轻量级 Python Web 框架
+- [python-dotenv](https://github.com/theskumar/python-dotenv) - 环境变量管理
+
+### AI 服务商
+感谢以下平台提供强大的 AI 模型支持：
+- [MiniMax](https://www.minimaxi.com/) - M27 模型
+- [DeepSeek](https://platform.deepseek.com/) - V4 / R1 系列模型
+- [OpenAI](https://platform.openai.com/) - GPT 系列模型
+- [阿里云通义千问](https://dashscope.console.aliyun.com/) - Qwen 系列模型
+- [Google AI](https://ai.google.dev/) - Gemini 系列模型
+- [Anthropic](https://www.anthropic.com/) - Claude 系列模型
+
+### 技术灵感
+- [PptxGenJS](https://github.com/gitbrent/PptxGenJS) - PPT 生成逻辑参考
+- [python-pptx](https://python-pptx.readthedocs.io/) - PPTX 结构参考
+
+### 开源社区
+感谢所有为开源事业做出贡献的开发者们！
+
+---
+
 ## 📄 许可证
 
 MIT License

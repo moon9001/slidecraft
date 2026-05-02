@@ -17,6 +17,11 @@ session_data/
 *.log
 flask*.log
 
+# Node.js 依赖
+node_modules/
+package.json
+package-lock.json
+
 # 测试/调试文件
 *.err
 *.out
@@ -36,6 +41,10 @@ fix_parse.py
 generate_*.json
 *测试*.html
 *测试*.pptx
+
+# 本地生成文件
+*.pptx
+temp_*.pptx
 
 # IDE
 .vscode/

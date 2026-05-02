@@ -910,8 +910,12 @@ def api_generate_ppt():
 
 @app.route("/api/download_pptx", methods=["POST"])
 def api_download_pptx():
-    """下载 PPTX 文件"""
+    """下载 PPTX 文件（使用PptxGenJS生成专业PPT）"""
     from urllib.parse import quote
+    import subprocess
+    import json as json_module
+    import base64
+    
     data = request.get_json(force=True, silent=True)
     if not data:
         return jsonify({"error": "请求格式错误，需要 JSON body"}), 400
@@ -922,16 +926,56 @@ def api_download_pptx():
     if not content:
         return jsonify({"error": "请先生成 PPT 大纲"}), 400
 
-    pages = parse_ppt_pages(content)
-    pptx_data = create_pptx_xml(topic or "PPT", pages, theme)
+    try:
+        # 将内容传给Node.js处理（generate_pptx.js会自行解析）
+        data_json = json_module.dumps({
+            "title": topic or "PPT",
+            "content": content,
+            "themeName": theme
+        }, ensure_ascii=False)
+        
+        # 调用Node.js generate_pptx.js生成PPTX
+        current_dir = os.path.dirname(os.path.abspath(__file__)) or '.'
+        result = subprocess.run(
+            ['node', 'generate_pptx.js', data_json],
+            capture_output=True,
+            text=True,
+            cwd=current_dir,
+            timeout=60
+        )
+        
+        if result.returncode != 0:
+            print(f"Node.js error: {result.stderr}")
+            raise Exception(result.stderr or "PPTX生成失败")
+        
+        pptx_base64 = result.stdout.strip()
+        
+        if not pptx_base64:
+            raise Exception("PPTX生成返回空数据")
+        
+        pptx_data = base64.b64decode(pptx_base64)
+        
+        # 使用安全的文件名编码（支持中文）
+        safe_filename = quote(topic or "PPT", safe='')
+        response = make_response(pptx_data)
+        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_filename}.pptx"
 
-    # 使用安全的文件名编码（支持中文）
-    safe_filename = quote(topic or "PPT", safe='')
-    response = make_response(pptx_data)
-    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-    response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_filename}.pptx"
-
-    return response
+        return response
+        
+    except Exception as e:
+        print(f"PPTX generation error: {str(e)}")
+        # 如果PptxGenJS失败，回退到手动XML方式
+        try:
+            pages = parse_ppt_pages(content)
+            pptx_data = create_pptx_xml(topic or "PPT", pages, theme)
+            safe_filename = quote(topic or "PPT", safe='')
+            response = make_response(pptx_data)
+            response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_filename}.pptx"
+            return response
+        except:
+            return jsonify({"error": f"PPTX生成失败: {str(e)}"}), 500
 
 @app.route("/api/history")
 def api_history():

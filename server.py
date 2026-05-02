@@ -193,8 +193,6 @@ def get_model_config(model_id):
         return config
     return None
 
-HTML_CONTENT = open("index.html", "r", encoding="utf-8").read()
-
 # 主题色配置
 THEMES = {
     "森林墨": {
@@ -833,7 +831,11 @@ def index():
     if 'user_id' not in session:
         session['user_id'] = secrets.token_hex(8)
         session['history'] = []
-    return HTML_CONTENT
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        return f"Error loading index.html: {str(e)}", 500
 
 @app.route("/test123")
 def test123():

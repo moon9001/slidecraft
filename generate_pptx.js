@@ -238,7 +238,8 @@ function cleanContent(s) {
 }
 
 function cleanMarkdown(s) {
-  // 去除 Markdown 标题标记 ### 
+  if (!s) return '';
+  // 去除 Markdown 标题标记 ###
   s = s.replace(/^#{1,6}\s+/, '');
   // 去除分隔线 ---
   s = s.replace(/^-{3,}\s*$/gm, '');
@@ -246,10 +247,15 @@ function cleanMarkdown(s) {
   s = s.replace(/\*\*(.+?)\*\*/g, '$1');
   // 去除 Markdown 斜体 *xxx* -> xxx
   s = s.replace(/\*(.+?)\*/g, '$1');
-  // 去除行首的星号列表标记
+  // 去除行首的列表标记
   s = s.replace(/^[\*\-?]\s+/, '');
-  // 去除末尾的【】符号
+  // 去除行首的数字列表标记（如 1. 或 1、）
+  s = s.replace(/^\d+[.、]\s+/, '');
+  // 彻底清理 【】 符号（开头和末尾）
+  s = s.replace(/^[\u3010\u3011]+/, '');
   s = s.replace(/[\u3010\u3011]+$/, '');
+  // 合并重复的"第"字（如"第第4页" -> "第4页"）
+  s = s.replace(/第+/g, '第');
   return s.trim();
 }
 
@@ -273,7 +279,9 @@ function parseContent(content) {
 
       // 清理 header 中的 Markdown 格式后再匹配
       const cleanHeader = cleanMarkdown(header);
-      const typeMatch = cleanHeader.match(/第(\d+)页[：:]?\s*(.+)/);
+      // 额外清理【】（防止 cleanMarkdown 没清理干净）
+      const finalHeader = cleanHeader.replace(/^[\u3010\u3011]+/, '').replace(/[\u3010\u3011]+$/, '');
+      const typeMatch = finalHeader.match(/第(\d+)页[：:]?\s*(.+)/);
       if (!typeMatch) continue;
 
       const pageTypeRaw = typeMatch[2].toLowerCase().trim();
@@ -283,6 +291,7 @@ function parseContent(content) {
         page.type = 'cover';
       } else if (pageTypeRaw.includes('目录') || pageTypeRaw.includes('toc')) {
         page.type = 'toc';
+        page.title = '目录';  // 默认标题
       } else if (pageTypeRaw.includes('结束') || pageTypeRaw.includes('谢谢') || pageTypeRaw.includes('summary') || pageTypeRaw.includes('end')) {
         page.type = 'summary';
       } else {
@@ -299,16 +308,33 @@ function parseContent(content) {
       const subM = cleanRest.match(/\u526f\u6807\u9898[：:]\s*([^\n]+)/);
       if (subM) page.subtitle = subM[1].trim();
 
-      // 要点解析（支持 要点：xxx 或 - xxx）
-      const bulletLines = cleanRest.split('\n');
+      // 要点解析（支持 要点：xxx、- xxx、* xxx、? xxx、数字列表）
+      const bulletLines = rest.split('\n');
       for (const line of bulletLines) {
-        const cl = cleanMarkdown(line).trim();
-        if (/^\u8981\u70b9[：:：]?\s*(.+)/.test(cl)) {
-          const pt = cl.replace(/^\u8981\u70b9[：:：]?\s*/, '').trim();
-          if (pt && pt.length > 2) page.bullets.push(pt);
-        } else if (/^\d+[.、：:]\s*(.+)/.test(cl) && page.type === 'toc') {
-          const it = cl.replace(/^\d+[.、：:]\s*/, '').trim();
-          if (it && it.length > 2) page.items.push(it);
+        const originalLine = line.trim();
+        if (!originalLine) continue;
+        
+        const cl = cleanMarkdown(originalLine);
+        if (!cl) continue;
+        
+        // 无序列表：- xxx 或 * xxx 或 ? xxx（先检查原始行）
+        if (/^[\*\-?]\s*.+/.test(originalLine)) {
+          const pt = cl.replace(/^[\*\-?]\s*/, '').trim();
+          if (pt && pt.length > 1) page.bullets.push(pt);
+        // 要点：xxx 或 要点:xxx
+        } else if (/^要点[：:]\s*.+/.test(cl)) {
+          const pt = cl.replace(/^要点[：:]\s*/, '').trim();
+          if (pt && pt.length > 1) page.bullets.push(pt);
+        // 数字列表：1. xxx 或 1、xxx（目录项或要点）
+        } else if (/^\d+[.、]\s*.+/.test(cl)) {
+          const content = cl.replace(/^\d+[.、]\s*/, '').trim();
+          if (content && content.length > 1) {
+            if (page.type === 'toc') {
+              page.items.push(content);
+            } else {
+              page.bullets.push(content);
+            }
+          }
         }
       }
 

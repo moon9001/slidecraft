@@ -102,12 +102,19 @@ SLIDECRAFT_DEFAULT_MODEL=deepseek-chat
 
 | 模型 ID | 名称 | 需要 API Key |
 |---------|------|-------------|
-| `deepseek-chat` | DeepSeek V3（均衡） | `DEEPSEEK_API_KEY` |
-| `deepseek-reasoner` | DeepSeek R1（推理） | `DEEPSEEK_API_KEY` |
-| `deepseek-v4-flash` | DeepSeek V4 Flash（极速） | `DEEPSEEK_API_KEY` |
 | `minimax-m27` | MiniMax M27（默认，推荐） | `MINIMAX_API_KEY` |
-| `gpt-4o` | GPT-4o（强大） | `OPENAI_API_KEY` |
-| `gpt-4o-mini` | GPT-4o Mini（快速） | `OPENAI_API_KEY` |
+| `deepseek-v4-flash` | DeepSeek V4 Flash（极速） | `DEEPSEEK_API_KEY` |
+| `deepseek-v3.2` | DeepSeek V3.2（均衡） | `DEEPSEEK_API_KEY` |
+| `deepseek-v3:671b` | DeepSeek V3 671B（强大） | `DEEPSEEK_API_KEY` |
+| `deepseek-r1:671b` | DeepSeek R1 671B（推理） | `DEEPSEEK_API_KEY` |
+| `deepseek-r1:671b-64k` | DeepSeek R1 64K（长文本） | `DEEPSEEK_API_KEY` |
+| `qwen3.5` | 通义千问 Qwen3.5 | `DEEPSEEK_API_KEY` |
+| `qwen3:235b` | 通义千问 Qwen3 235B | `DEEPSEEK_API_KEY` |
+| `qwen2.5-vl:72b` | 通义千问 Qwen2.5-VL | `DEEPSEEK_API_KEY` |
+| `gpt-oss-120b` | GPT-OSS 120B（强大） | `DEEPSEEK_API_KEY` |
+| `spark-x1:70b` | 讯飞星火 X1 70B | `DEEPSEEK_API_KEY` |
+| `S1-Base-Pro` | S1-Base Pro | `DEEPSEEK_API_KEY` |
+| `S1-Base-Ultra` | S1-Base Ultra | `DEEPSEEK_API_KEY` |
 
 ### 添加自定义模型
 

@@ -45,25 +45,30 @@ cp .env.example .env
 - API Key：在 MiniMax 控制台获取
 - 环境变量：`MINIMAX_API_KEY`
 
-**DeepSeek**
+**DeepSeek（最新 V4 系列）**
 - 官网：https://platform.deepseek.com/
 - API Key：https://platform.deepseek.com/api_keys
 - 环境变量：`DEEPSEEK_API_KEY`
 
-**通义千问（阿里云）**
+**通义千问（阿里云，Qwen3.6）**
 - 官网：https://dashscope.console.aliyun.com/
 - API Key：在阿里云 DashScope 控制台获取
 - 环境变量：`DASHSCOPE_API_KEY`
 
-**硅基流动**
-- 官网：https://www.siliconflow.cn/
-- API Key：在硅基流动控制台获取
-- 环境变量：`SILICONFLOW_API_KEY`
+**OpenAI（GPT-5.5 / o3 / o4）**
+- 官网：https://platform.openai.com/
+- API Key：https://platform.openai.com/api-keys
+- 环境变量：`OPENAI_API_KEY`
 
-**讯飞星火**
-- 官网：https://xinghuo.xfyun.cn/
-- API Key：在讯飞开放平台获取
-- 环境变量：`SPARK_API_KEY`
+**Google Gemini（3.1 系列）**
+- 官网：https://ai.google.dev/
+- API Key：https://aistudio.google.com/app/apikey
+- 环境变量：`GOOGLE_API_KEY`
+
+**Anthropic Claude（Opus 4.6）**
+- 官网：https://www.anthropic.com/
+- API Key：https://console.anthropic.com/settings/keys
+- 环境变量：`ANTHROPIC_API_KEY`
 
 > 💡 **提示**：你可以使用任意 OpenAI 兼容的 API 服务，只需修改 `SLIDECRAFT_API_URL` 环境变量。
 
@@ -82,8 +87,9 @@ python server.py
 | `MINIMAX_API_KEY` | MiniMax API Key | ✅ 是 | `your-key` |
 | `DEEPSEEK_API_KEY` | DeepSeek API Key | ❌ 否 | `sk-...` |
 | `DASHSCOPE_API_KEY` | 阿里云通义千问 API Key | ❌ 否 | `sk-...` |
-| `SILICONFLOW_API_KEY` | 硅基流动 API Key | ❌ 否 | `sk-...` |
-| `SPARK_API_KEY` | 讯飞星火 API Key | ❌ 否 | `your-key` |
+| `OPENAI_API_KEY` | OpenAI API Key | ❌ 否 | `sk-...` |
+| `GOOGLE_API_KEY` | Google Gemini API Key | ❌ 否 | `your-key` |
+| `ANTHROPIC_API_KEY` | Anthropic Claude API Key | ❌ 否 | `sk-ant-...` |
 | `SLIDECRAFT_API_URL` | 自定义 API 地址 | ❌ 否 | `https://your-api.com/v1/chat/completions` |
 | `SLIDECRAFT_DEFAULT_MODEL` | 默认模型 | ❌ 否 | `minimax-m27` |
 
@@ -99,11 +105,14 @@ DEEPSEEK_API_KEY=your-deepseek-key
 # 阿里云通义千问
 DASHSCOPE_API_KEY=your-dashscope-key
 
-# 硅基流动
-SILICONFLOW_API_KEY=your-siliconflow-key
+# OpenAI（GPT-5.5 / o3 / o4-mini）
+OPENAI_API_KEY=sk-your-openai-key
 
-# 讯飞星火
-SPARK_API_KEY=your-spark-key
+# Google Gemini
+GOOGLE_API_KEY=your-google-key
+
+# Anthropic Claude
+ANTHROPIC_API_KEY=sk-ant-your-key
 
 # 自定义 API 地址（可选，用于 OpenAI 兼容的服务）
 # SLIDECRAFT_API_URL=https://api.openai.com/v1/chat/completions
@@ -118,16 +127,20 @@ SPARK_API_KEY=your-spark-key
 | 模型 ID | 名称 | 需要 API Key | 服务商 |
 |---------|------|-------------|--------|
 | `minimax-m27` | MiniMax M27（默认，推荐） | `MINIMAX_API_KEY` | MiniMax |
-| `deepseek-v3` | DeepSeek V3（最新均衡） | `DEEPSEEK_API_KEY` | DeepSeek |
+| `deepseek-v4-pro` | DeepSeek V4 Pro（百万上下文） | `DEEPSEEK_API_KEY` | DeepSeek |
+| `deepseek-v4-flash` | DeepSeek V4 Flash（极速） | `DEEPSEEK_API_KEY` | DeepSeek |
 | `deepseek-r1` | DeepSeek R1（强推理） | `DEEPSEEK_API_KEY` | DeepSeek |
-| `qwen-plus` | 通义千问 Qwen Plus | `DASHSCOPE_API_KEY` | 阿里云 |
-| `qwen-max` | 通义千问 Qwen Max | `DASHSCOPE_API_KEY` | 阿里云 |
-| `qwen-vl-plus` | 通义千问 VL Plus（视觉） | `DASHSCOPE_API_KEY` | 阿里云 |
-| `qwen2.5-72b` | Qwen2.5 72B | `SILICONFLOW_API_KEY` | 硅基流动 |
-| `deepseek-v3-0324` | DeepSeek V3 0324 | `SILICONFLOW_API_KEY` | 硅基流动 |
-| `glm-4-flash` | GLM-4 Flash（智谱） | `SILICONFLOW_API_KEY` | 硅基流动 |
-| `spark-4.0` | 讯飞星火 4.0 | `SPARK_API_KEY` | 讯飞星火 |
-| `spark-5.0` | 讯飞星火 5.0 | `SPARK_API_KEY` | 讯飞星火 |
+| `qwen3.6-max` | 通义千问 Qwen3.6-Max | `DASHSCOPE_API_KEY` | 阿里云 |
+| `qwen3.6-27b` | Qwen3.6-27B（开源） | `DASHSCOPE_API_KEY` | 阿里云 |
+| `qwen-vl-max` | 通义千问 VL Max（视觉） | `DASHSCOPE_API_KEY` | 阿里云 |
+| `gpt-5.5` | GPT-5.5（最新旗舰） | `OPENAI_API_KEY` | OpenAI |
+| `o3` | OpenAI o3（推理） | `OPENAI_API_KEY` | OpenAI |
+| `o4-mini` | OpenAI o4-mini（轻量推理） | `OPENAI_API_KEY` | OpenAI |
+| `gpt-4o` | GPT-4o（多模态） | `OPENAI_API_KEY` | OpenAI |
+| `gemini-3.1-ultra` | Gemini 3.1 Ultra | `GOOGLE_API_KEY` | Google |
+| `gemini-3.1-pro` | Gemini 3.1 Pro | `GOOGLE_API_KEY` | Google |
+| `claude-opus-4.6` | Claude Opus 4.6 | `ANTHROPIC_API_KEY` | Anthropic |
+| `claude-sonnet-4` | Claude Sonnet 4 | `ANTHROPIC_API_KEY` | Anthropic |
 
 ### 添加自定义模型
 

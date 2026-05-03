@@ -225,6 +225,41 @@
         .modal-body iframe { width: 100%; height: 100%; border: none; }
         .download-info { background: #e3f2fd; border-left: 4px solid #0070c0; padding: 15px; margin-top: 20px; border-radius: 0 10px 10px 0; font-size: 14px; color: #0d47a1; }
         .download-info strong { display: block; margin-bottom: 8px; }
+        
+        /* 润色确认界面 */
+        .polish-panel { display: none; background: white; border-radius: 15px; padding: 25px; margin-top: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .polish-panel.show { display: block; }
+        .polish-panel h3 { margin-bottom: 15px; color: var(--primary); }
+        .polish-panel .preview { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 15px; white-space: pre-wrap; font-size: 14px; line-height: 1.8; max-height: 400px; overflow-y: auto; }
+        .polish-panel .edit-area { width: 100%; min-height: 300px; padding: 15px; border: 2px solid #e1e1e1; border-radius: 10px; font-size: 14px; line-height: 1.8; resize: vertical; font-family: inherit; }
+        .polish-panel .edit-area:focus { border-color: var(--primary); outline: none; }
+        .polish-panel .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+        .polish-panel .btn-confirm { background: #2d8a4e; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+        .polish-panel .btn-confirm:hover { background: #1a5f2a; }
+        .polish-panel .btn-retry { background: #ff9800; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+        .polish-panel .btn-cancel { background: #999; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+        .polish-panel .polish-mode { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 12px 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #c8e6c9; }
+        .polish-panel .polish-mode input { width: 18px; height: 18px; accent-color: #2d8a4e; }
+        .polish-panel .polish-mode label { font-size: 14px; color: #2d8a4e; font-weight: 500; cursor: pointer; }
+        .polish-panel .hint { font-size: 12px; color: #666; margin-top: 8px; }
+        
+        /* 验证面板样式 */
+        .validate-btn { background: linear-gradient(135deg, #ff9800, #f57c00); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+        .validate-btn:hover { background: linear-gradient(135deg, #f57c00, #e65100); }
+        .validate-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .validate-panel { animation: slideIn 0.3s ease; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .validate-result-item { padding: 10px; margin-bottom: 8px; border-radius: 6px; font-size: 14px; }
+        .validate-result-item.success { background: #e8f5e9; border-left: 3px solid #4caf50; }
+        .validate-result-item.warning { background: #fff3e0; border-left: 3px solid #ff9800; }
+        .validate-result-item.error { background: #ffebee; border-left: 3px solid #f44336; }
+        .score-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 18px; margin-bottom: 15px; }
+        .score-high { background: #e8f5e9; color: #2e7d32; }
+        .score-medium { background: #fff3e0; color: #e65100; }
+        .score-low { background: #ffebee; color: #c62828; }
     </style>
 </head>
 <body>
@@ -335,10 +370,23 @@
 
                 <div class="btn-row">
                     <button type="submit" id="submitBtn">🚀 生成 PPT 大纲</button>
+                    <button type="button" id="polishBtn" onclick="polishAndGenerate()" style="background: linear-gradient(135deg, #2d8a4e, #1a5f2a);">✨ 先润色再生成</button>
                 </div>
             </form>
 
             <div class="error" id="error"></div>
+
+            <!-- 润色确认面板 -->
+            <div class="polish-panel" id="polishPanel">
+                <h3>✨ AI 润色结果</h3>
+                <p style="color: #666; margin-bottom: 15px;">请检查润色后的内容，您可以手动修改后确认生成：</p>
+                <textarea class="edit-area" id="polishedContent" placeholder="润色后的内容将显示在这里..."></textarea>
+                <div class="btn-row">
+                    <button class="btn-confirm" onclick="confirmPolish()">✅ 确认并生成 PPT</button>
+                    <button class="btn-retry" onclick="retryPolish()">🔄 重新润色</button>
+                    <button class="btn-cancel" onclick="cancelPolish()">❌ 取消</button>
+                </div>
+            </div>
 
             <div id="generating" style="display: none; margin-top: 30px;">
                 <div class="generating-box">
@@ -367,6 +415,19 @@
                     <button class="download-btn" id="downloadPptxBtn" onclick="downloadPPTX()" disabled>
                         📥 下载 PPTX 文件
                     </button>
+                    <button class="validate-btn" id="validateBtn" onclick="validateContent()" disabled style="background: linear-gradient(135deg, #ff9800, #f57c00);">
+                        ✅ 验证内容
+                    </button>
+                </div>
+
+                <!-- 验证结果面板 -->
+                <div class="validate-panel" id="validatePanel" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #ff9800;">
+                    <h4 style="margin-bottom: 15px; color: #f57c00;">✅ 内容验证报告</h4>
+                    <div id="validateResult"></div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn-confirm" onclick="proceedAfterValidation()" style="background: #2d8a4e;">✅ 验证通过，继续生成</button>
+                        <button class="btn-cancel" onclick="closeValidation()" style="margin-left: 10px;">❌ 关闭</button>
+                    </div>
                 </div>
 
                 <div class="download-info">
@@ -420,6 +481,216 @@
         let currentHtml = '';
         let currentBlobUrl = null;
         let configuredModels = {};
+        let pendingPolishData = null;  // 待确认的润色数据
+
+        // 先润色再生成
+        async function polishAndGenerate() {
+            const topic = document.getElementById('topic').value.trim();
+            const requirements = document.getElementById('requirements').value.trim();
+            const userContent = document.getElementById('userContent').value.trim();
+            const slides = document.getElementById('slides').value;
+            const style = document.getElementById('style').value;
+            const model = modelSelect.value;
+
+            if (!topic) { showError('请输入 PPT 主题'); return; }
+            if (!userContent) { showError('请先在"粘贴您的文案内容"中提供原始内容'); return; }
+
+            // 显示润色面板
+            result.classList.remove('show');
+            error.classList.remove('show');
+            generating.style.display = 'block';
+            generatingStatus.textContent = '✨ AI 正在润色内容...';
+            document.getElementById('generatingStats').textContent = '优化结构和表达中...';
+            document.getElementById('polishBtn').disabled = true;
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/polish_content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        topic, 
+                        raw_content: userContent, 
+                        requirements,
+                        slides: parseInt(slides), 
+                        style, 
+                        model 
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '润色失败');
+
+                // 保存待确认的数据
+                pendingPolishData = {
+                    topic: data.title || topic,
+                    content: data.polished_content,
+                    slides: data.slides,
+                    model: data.model
+                };
+
+                // 显示润色结果
+                generating.style.display = 'none';
+                document.getElementById('polishPanel').classList.add('show');
+                document.getElementById('polishedContent').value = data.polished_content;
+                document.getElementById('polishBtn').disabled = false;
+                submitBtn.disabled = false;
+                
+                // 滚动到润色面板
+                document.getElementById('polishPanel').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (err) {
+                showError(err.message);
+                generating.style.display = 'none';
+                document.getElementById('polishBtn').disabled = false;
+                submitBtn.disabled = false;
+            }
+        }
+
+        // 确认润色结果并生成
+        function confirmPolish() {
+            if (!pendingPolishData) { showError('没有待确认的润色内容'); return; }
+
+            // 获取用户可能修改后的内容
+            const editedContent = document.getElementById('polishedContent').value.trim();
+            if (!editedContent) { showError('润色内容不能为空'); return; }
+
+            // 更新当前内容
+            currentContent = editedContent;
+            currentTopic = pendingPolishData.topic;
+            
+            // 隐藏润色面板，显示结果
+            document.getElementById('polishPanel').classList.remove('show');
+            resultContent.textContent = currentContent;
+            result.classList.add('show');
+            
+            // 清空待确认数据
+            pendingPolishData = null;
+            
+            // 更新表单中的主题
+            document.getElementById('topic').value = currentTopic;
+            
+            // 启用生成按钮
+            generatePptBtn.disabled = false;
+            downloadPptxBtn.disabled = false;
+            
+            // 加载历史
+            loadHistory();
+        }
+
+        // 重新润色
+        function retryPolish() {
+            if (!pendingPolishData) return;
+            
+            // 清空待确认数据，重新调用润色
+            pendingPolishData = null;
+            polishAndGenerate();
+        }
+
+        // 取消润色
+        function cancelPolish() {
+            document.getElementById('polishPanel').classList.remove('show');
+            pendingPolishData = null;
+            document.getElementById('polishBtn').disabled = false;
+            submitBtn.disabled = false;
+        }
+
+        // 验证内容
+        async function validateContent() {
+            if (!currentContent) { showError('请先生成PPT内容'); return; }
+
+            const validateBtn = document.getElementById('validateBtn');
+            const validatePanel = document.getElementById('validatePanel');
+            const validateResult = document.getElementById('validateResult');
+            
+            validateBtn.disabled = true;
+            validateBtn.textContent = '⏳ 验证中...';
+            validatePanel.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/validate_content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        content: currentContent, 
+                        topic: currentTopic,
+                        model: modelSelect.value 
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '验证失败');
+
+                // 显示验证结果
+                let html = '';
+                
+                // 评分
+                const score = data.score || 0;
+                let scoreClass = 'score-low';
+                if (score >= 80) scoreClass = 'score-high';
+                else if (score >= 60) scoreClass = 'score-medium';
+                
+                html += `<div class="score-badge ${scoreClass}">综合评分：${score}分</div>`;
+                
+                // 总体评价
+                if (data.summary) {
+                    html += `<div class="validate-result-item ${data.format_valid ? 'success' : 'warning'}" style="margin-bottom: 15px;">
+                        <strong>📋 总体评价：</strong>${data.summary}
+                    </div>`;
+                }
+                
+                // 格式状态
+                html += `<div class="validate-result-item ${data.format_valid ? 'success' : 'error'}">
+                    <strong>${data.format_valid ? '✅' : '⚠️'} 格式检查：</strong>
+                    ${data.format_valid ? '格式正确' : '格式有问题，请查看下方建议'}
+                    ${data.page_count ? `（共 ${data.page_count} 页）` : ''}
+                </div>`;
+                
+                // 问题列表
+                if (data.issues && data.issues.length > 0) {
+                    html += `<div style="margin-top: 15px;"><strong>⚠️ 发现的问题：</strong></div>`;
+                    data.issues.forEach(issue => {
+                        html += `<div class="validate-result-item warning">• ${issue}</div>`;
+                    });
+                }
+                
+                // 改进建议
+                if (data.suggestions && data.suggestions.length > 0) {
+                    html += `<div style="margin-top: 15px;"><strong>💡 改进建议：</strong></div>`;
+                    data.suggestions.forEach(suggestion => {
+                        html += `<div class="validate-result-item success">• ${suggestion}</div>`;
+                    });
+                }
+
+                // 原始结果（如果解析失败）
+                if (data.raw_result) {
+                    html += `<div style="margin-top: 15px;"><strong>🤖 AI 原始反馈：</strong></div>
+                    <pre style="background: white; padding: 10px; border-radius: 6px; font-size: 12px; max-height: 200px; overflow-y: auto;">${escapeHtml(data.raw_result)}</pre>`;
+                }
+
+                validateResult.innerHTML = html;
+                validatePanel.style.display = 'block';
+                validatePanel.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (err) {
+                showError('验证失败：' + err.message);
+            } finally {
+                validateBtn.disabled = false;
+                validateBtn.textContent = '✅ 验证内容';
+            }
+        }
+
+        // 验证后继续生成
+        function proceedAfterValidation() {
+            document.getElementById('validatePanel').style.display = 'none';
+            // 直接调用下载PPTX
+            downloadPPTX();
+        }
+
+        // 关闭验证面板
+        function closeValidation() {
+            document.getElementById('validatePanel').style.display = 'none';
+        }
 
         // 加载保存的主题设置
         function loadTheme() {
@@ -578,6 +849,7 @@
         function cancelGenerate() {
             generating.style.display = 'none';
             submitBtn.disabled = false;
+            document.getElementById('polishBtn').disabled = false;
         }
 
         form.addEventListener('submit', async (e) => {

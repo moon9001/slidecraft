@@ -982,27 +982,38 @@ def api_download_pptx():
     if not content:
         return jsonify({"error": "请先生成 PPT 大纲"}), 400
 
+    import tempfile
     try:
-        # 将内容传给Node.js处理（generate_pptx.js会自行解析）
+        # 将内容传给Node.js处理（通过临时文件，避免Windows管道GBK编码问题）
         data_json = json_module.dumps({
             "title": topic or "PPT",
             "content": content,
             "themeName": theme
         }, ensure_ascii=False)
         
-        # 调用Node.js generate_pptx.js生成PPTX
+        # 写入临时文件（UTF-8，避免stdin管道编码转换问题）
         current_dir = os.path.dirname(os.path.abspath(__file__)) or '.'
-        result = subprocess.run(
-            ['node', 'generate_pptx.js', data_json],
-            capture_output=True,
-            text=True,
-            cwd=current_dir,
-            timeout=60
-        )
+        tmp_file = os.path.join(current_dir, f'tmp_pptx_{os.getpid()}.json')
+        try:
+            with open(tmp_file, 'w', encoding='utf-8') as f:
+                f.write(data_json)
+            
+            # 调用Node.js generate_pptx.js，通过@文件名传参
+            result = subprocess.run(
+                ['node', 'generate_pptx.js', f'@{tmp_file}'],
+                capture_output=True,
+                cwd=current_dir,
+                timeout=60
+            )
+        finally:
+            # 确保清理临时文件
+            if os.path.exists(tmp_file):
+                os.remove(tmp_file)
         
         if result.returncode != 0:
-            print(f"Node.js error: {result.stderr}")
-            raise Exception(result.stderr or "PPTX生成失败")
+            err_msg = result.stderr.decode('utf-8', errors='replace') if result.stderr else "PPTX生成失败"
+            print(f"Node.js error: {err_msg}")
+            raise Exception(err_msg)
         
         pptx_base64 = result.stdout.strip()
         
@@ -1032,6 +1043,268 @@ def api_download_pptx():
             return response
         except:
             return jsonify({"error": f"PPTX生成失败: {str(e)}"}), 500
+
+@app.route("/api/polish_content", methods=["POST"])
+def api_polish_content():
+    """
+    先润色PPT内容，再生成（两阶段流程）
+    1. 用户提交原始内容/主题
+    2. AI润色成标准大纲格式
+    3. 返回润色结果供用户确认
+    4. 用户确认后再调用 /api/download_pptx 生成
+    """
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            data = dict(request.form) if request.form else {}
+        
+        # 支持多种输入方式
+        raw_content = data.get("raw_content", "").strip()  # 原始/粗糙内容
+        topic = data.get("topic", "").strip()               # 主题
+        slides = int(data.get("slides", 8))
+        style = data.get("style", "简洁明了")
+        model = data.get("model", "minimax-m27")
+        
+        # 至少需要原始内容或主题之一
+        if not raw_content and not topic:
+            return jsonify({"error": "请提供内容或主题"}), 400
+        
+        # 获取模型配置
+        model_config = get_model_config(model)
+        if not model_config or not model_config["api_key"]:
+            return jsonify({"error": f"模型未配置或缺少API Key"}), 400
+        
+        # 构建润色prompt
+        if raw_content:
+            prompt = f"""你是一个专业的PPT内容策划专家。用户提供了以下PPT内容，请进行润色、优化和结构化整理。
+
+**用户提供的内容：**
+{raw_content}
+
+**目标页数：** {slides} 页
+**PPT风格：** {style}
+
+**你的任务：**
+1. 润色语言表达，使其更专业、更精炼
+2. 优化内容结构，确保逻辑清晰
+3. 补充必要的数据支撑和案例（如适用）
+4. 调整为标准的PPT大纲格式
+
+**输出格式（必须严格遵循）：**
+```
+【第1页：封面】
+标题：[主标题]
+副标题：[副标题/汇报人信息]
+
+【第2页：目录】
+1. [章节1名称]
+2. [章节2名称]
+3. [章节3名称]
+...（根据实际内容调整）
+
+【第3页：[章节标题]】
+要点：[要点1]
+要点：[要点2]
+要点：[要点3]
+
+[继续其他内容页...]
+
+【最后1页：结束页】
+标题：谢谢
+```
+
+**注意：**
+- 封面页副标题通常是机构名称或汇报人
+- 每个内容页建议2-4个要点
+- 内容要专业、有深度、有数据支撑
+- 不要省略任何页面标记"""
+        else:
+            # 只有主题，没有原始内容
+            prompt = f"""你是一个专业的PPT内容策划专家。请为以下主题生成完整的PPT内容大纲。
+
+**主题：** {topic}
+**页数：** {slides} 页
+**风格：** {style}
+
+请按以下格式生成（严格遵循）：
+【第1页：封面】
+标题：[主标题]
+副标题：[副标题/汇报人]
+
+【第2页：目录】
+1. [章节1名称]
+2. [章节2名称]
+3. [章节3名称]
+
+【第3页：[第一个章节标题]】
+要点：[要点1]
+要点：[要点2]
+要点：[要点3]
+
+【第4页：[第二个章节标题]】
+要点：[要点1]
+要点：[要点2]
+
+【最后1页：结束页】
+标题：谢谢
+
+请确保内容专业、有深度、有数据支撑！"""
+
+        # 调用AI润色
+        resp = requests.post(
+            model_config["api_url"],
+            headers={"Authorization": f"Bearer {model_config['api_key']}", "Content-Type": "application/json"},
+            json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7, "max_tokens": 8192},
+            timeout=120
+        )
+        resp.raise_for_status()
+        polished_content = resp.json()["choices"][0]["message"]["content"]
+        
+        # 提取标题（如果AI返回的格式正确）
+        first_title = topic
+        import re
+        title_match = re.search(r'标题[：:]\s*(.+?)(?:\n|$)', polished_content)
+        if title_match:
+            first_title = title_match.group(1).strip()
+        
+        return jsonify({
+            "success": True,
+            "polished_content": polished_content,
+            "title": first_title,
+            "slides": slides,
+            "model": model
+        })
+        
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "润色请求超时，请稍后重试"}), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"API 请求失败: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/validate_content", methods=["POST"])
+def api_validate_content():
+    """
+    生成PPT前的内容验证（让AI检查格式和内容完整性）
+    返回：格式是否正确、页数统计、问题列表、改进建议
+    """
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"error": "请求格式错误"}), 400
+        
+        content = data.get("content", "").strip()
+        topic = data.get("topic", "").strip()
+        model = data.get("model", "minimax-m27")
+        
+        if not content:
+            return jsonify({"error": "请提供要验证的内容"}), 400
+        
+        # 获取模型配置
+        model_config = get_model_config(model)
+        if not model_config or not model_config["api_key"]:
+            return jsonify({"error": f"模型未配置或缺少API Key"}), 400
+        
+        # 构建验证prompt
+        prompt = f"""你是一个专业的PPT内容审核专家。请仔细检查以下PPT内容，并给出详细的验证报告。
+
+**PPT主题：** {topic if topic else "未指定"}
+
+**待验证的内容：**
+```
+{content}
+```
+
+请按以下格式输出验证报告（严格遵循JSON格式）：
+
+```json
+{{
+  "format_valid": true/false,
+  "page_count": 实际页数,
+  "issues": [
+    "问题1描述",
+    "问题2描述"
+  ],
+  "suggestions": [
+    "建议1",
+    "建议2"
+  ],
+  "score": 评分(0-100),
+  "summary": "总体评价（50字以内）"
+}}
+```
+
+**检查要点：**
+1. **格式检查**：
+   - 每页是否都有正确的标记（【第X页：类型】）
+   - 封面页是否有"标题"和"副标题"
+   - 目录页是否列出了所有章节
+   - 内容页是否有"要点"
+   - 结束页是否存在
+
+2. **内容检查**：
+   - 页数是否合理（5-20页）
+   - 内容是否完整（没有半截的内容）
+   - 要点是否清晰（每条要点不超过20字）
+   - 逻辑是否连贯
+
+3. **质量检查**：
+   - 语言是否专业
+   - 是否有数据支撑
+   - 是否符合学术/商务规范
+
+**注意：**
+- 如果格式完全正确，format_valid 为 true
+- 如果发现问题，在 issues 中列出
+- 给出具体的改进建议（suggestions）
+- score 是0-100的整体评分
+- summary 是简短的总体评价"""
+
+        # 调用AI验证
+        resp = requests.post(
+            model_config["api_url"],
+            headers={"Authorization": f"Bearer {model_config['api_key']}", "Content-Type": "application/json"},
+            json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 2048},
+            timeout=60
+        )
+        resp.raise_for_status()
+        validation_text = resp.json()["choices"][0]["message"]["content"]
+        
+        # 尝试解析JSON
+        import re
+        json_match = re.search(r'```json\s*([\s\S]*?)\s*```', validation_text)
+        if json_match:
+            validation_result = json.loads(json_match.group(1))
+        else:
+            # 尝试直接解析
+            try:
+                validation_result = json.loads(validation_text)
+            except:
+                # 如果解析失败，返回原始文本
+                return jsonify({
+                    "success": True,
+                    "raw_result": validation_text,
+                    "format_valid": None,
+                    "page_count": None,
+                    "issues": [],
+                    "suggestions": [],
+                    "score": None,
+                    "summary": "AI返回格式异常，请查看原始结果"
+                })
+        
+        return jsonify({
+            "success": True,
+            **validation_result
+        })
+        
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "验证请求超时，请稍后重试"}), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"API 请求失败: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/history")
 def api_history():
